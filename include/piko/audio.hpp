@@ -29,7 +29,7 @@ namespace piko {
         void stopChannelStream(int channelIdx);
 
     private:
-        AudioManager();
+        AudioManager(){}
         // Holds tracking info for a channel currently streaming data from disk
         struct ActiveStream {
             Music* streamRef = nullptr;
