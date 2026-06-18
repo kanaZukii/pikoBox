@@ -23,8 +23,7 @@ Engine::Engine() {
     sceneMAN->setGameCamera(&activeCam);
 }
 
-void Engine::init(const char *title, int width, int height, bool fullscreen,
-                  bool resizeable, int targetFPS) {
+void Engine::init(const char *title, int width, int height, bool fullscreen, bool resizeable, int targetFPS) {
     PBOX_INFO("PANDORA BOX INITIALIZING........");
     PBOX_INFO("TITLE: %s", title);
     PBOX_INFO("DIMENSION: %dpx x %dpx", width, height);
@@ -32,19 +31,19 @@ void Engine::init(const char *title, int width, int height, bool fullscreen,
     
     SetTraceLogLevel(LOG_NONE);
 
-    if (fullscreen)
-    SetConfigFlags(FLAG_FULLSCREEN_MODE);
-    if (resizeable)
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    if (fullscreen){ SetConfigFlags(FLAG_FULLSCREEN_MODE);}
+    if (resizeable){ SetConfigFlags(FLAG_WINDOW_RESIZABLE);}
 
     setWinSize(width, height);
     setTitle(title);
 
     InitWindow(Global::GetVar().windowWidth, Global::GetVar().windowHeight,
                 Global::GetVar().windowTitle);
-    if (!IsWindowReady())
-    PBOX_ERROR("FAILED TO INITIALIZE WINDOW.");
-    return;
+    if (!IsWindowReady()){
+        PBOX_ERROR("FAILED TO INITIALIZE WINDOW.");
+        return;
+    }
+    
 
     SetTargetFPS(targetFPS);
     Global::GetVar().fullscreen = IsWindowFullscreen();
@@ -82,12 +81,8 @@ void Engine::terminate() {
     delete physicsMAN;
     delete audioMAN;
 
-    if (drawLayer0->id != 0) {
-    UnloadRenderTexture(*drawLayer0);
-    }
-    if (drawLayer1->id != 0) {
-    UnloadRenderTexture(*drawLayer1);
-    }
+    if (drawLayer0->id != 0) { UnloadRenderTexture(*drawLayer0);}
+    if (drawLayer1->id != 0) { UnloadRenderTexture(*drawLayer1);}
 
     delete drawLayer0;
     delete drawLayer1;
@@ -102,11 +97,9 @@ void Engine::update(){
 
     float camSpeed = 300.0f * dt.raw;
 
-    if (IsKeyPressed(KEY_F11))
-        setFullScreen(!Global::GetVar().fullscreen);
-    if (IsKeyPressed(KEY_F2))
-        TakeScreenshot("screenshot.png");
+    if (IsKeyPressed(KEY_F11)) setFullScreen(!Global::GetVar().fullscreen);
 
+    if (IsKeyPressed(KEY_F2)) TakeScreenshot("screenshot.png");
     
     if (sceneMAN->currentScene) {
         Rect simBounds = activeCam.getViewSpaceBubble();
@@ -170,12 +163,8 @@ bool Engine::shouldCloseWindow(){
 
 void Engine::setDrawBufferSize(int width, int height) {
     PBOX_INFO("SETTING DRAW BUFFER SIZE TO %d x %d.....", width, height);
-    if (drawLayer0->id != 0) {
-    UnloadRenderTexture(*drawLayer0);
-    }
-    if (drawLayer1->id != 0) {
-    UnloadRenderTexture(*drawLayer1);
-    }
+    if (drawLayer0->id != 0) { UnloadRenderTexture(*drawLayer0); }
+    if (drawLayer1->id != 0) { UnloadRenderTexture(*drawLayer1); }
 
     *drawLayer0 = LoadRenderTexture(width, height);
     *drawLayer1 = LoadRenderTexture(width, height);
@@ -187,15 +176,17 @@ void Engine::setDrawBufferSize(int width, int height) {
     Global::GetVar().canvasHeight = height;
 
     activeCam.setOffset(
-        {drawLayer0->texture.width * 0.5f, drawLayer0->texture.height * 0.5f});
+        {drawLayer0->texture.width * 0.5f, drawLayer0->texture.height * 0.5f}
+    );
+
     PBOX_INFO("SUCCESSFULLY SET THE DRAW BUFFER SIZE.");
 }
 
 void Engine::setTitle(const char *title) {
     Global::GetVar().windowTitle = title;
     if (IsWindowReady()) {
-    SetWindowTitle(title);
-    PBOX_INFO("SUCCESSFULLY SET TITLE TO: '%s'.", title);
+        SetWindowTitle(title);
+        PBOX_INFO("SUCCESSFULLY SET TITLE TO: '%s'.", title);
     }
 }
 
@@ -203,17 +194,17 @@ void Engine::setWinSize(int width, int height) {
     Global::GetVar().windowWidth = width;
     Global::GetVar().windowHeight = height;
     if (IsWindowReady()) {
-    SetWindowSize(width, height);
-    PBOX_INFO("SUCCESSFULLY SET WINDOW SIZE TO: %d x %d.", width, height);
+        SetWindowSize(width, height);
+        PBOX_INFO("SUCCESSFULLY SET WINDOW SIZE TO: %d x %d.", width, height);
     }
 }
 
 void Engine::setFullScreen(bool fullscreen) {
     Global::GetVar().fullscreen = fullscreen;
     if (IsWindowReady()) {
-    if (IsWindowFullscreen() != fullscreen) {
-        ToggleFullscreen();
-    }
+        if (IsWindowFullscreen() != fullscreen) {
+            ToggleFullscreen();
+        }
     }
 }
 
