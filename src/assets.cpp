@@ -441,7 +441,7 @@ void AssetManager::deserialize(const std::string& rawJson) {
             AudioClip::AudioType type = static_cast<AudioClip::AudioType>(typeInt);
             this->addAudioClip(key, path, type, channel);
         }
-        PBOX_INFO("ASSET_MAN: Successfully audio assets to runtime." );
+        PBOX_INFO("ASSET_MAN: Successfully deserialized audio assets to runtime." );
     }
 
     if (data.contains("fonts") && data["fonts"].is_object()) {
@@ -510,7 +510,7 @@ bool AssetManager::saveAssetsRefToFile(std::string path){
         output_file << this->serialize();
 
         output_file.close();
-        PBOX_INFO("ASSET_MAN: Successfully Serialized assets to '%s'", path.c_str());
+        PBOX_INFO("ASSET_MAN: Successfully serialized assets to '%s'", path.c_str());
         return true;
 
     } catch (const json::parse_error& e) {
