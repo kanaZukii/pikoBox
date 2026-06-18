@@ -1,0 +1,176 @@
+#include "piko/audio.hpp"
+#include "piko/audioClip.hpp"
+#include "piko/logger.hpp"
+
+#include "raylib.h"
+
+#include <iostream>
+#include <utility>
+#include <algorithm>
+#include <filesystem>
+
+using namespace piko;
+
+AudioClip::AudioClip(const std::string& filepath, AudioType type, int targetChannel)
+    : path(filepath), type(type), defaultChannel(targetChannel) {
+
+    if (!std::filesystem::exists(filepath)) {
+        throw std::runtime_error("AUDIOCLIP: File does not exist: " + filepath);
+    }
+    
+    if (type == AudioClip::AudioType::STATIC_SFX) {
+        Sound tempSound = LoadSound(path.c_str());
+
+        if (tempSound.frameCount == 0) {
+            throw std::runtime_error("AUDIOCLIP: this audio file failed to load: " + filepath);
+        }
+
+        staticData = new Sound(tempSound);
+
+    } else if (type == AudioClip::AudioType::STREAM_MUSIC) {
+        Music tempMusic = LoadMusicStream(path.c_str());
+        
+        if (tempMusic.frameCount == 0) {
+            throw std::runtime_error("AUDIOCLIP: this audio file failed to load: " + filepath);
+        }
+
+        streamData = new Music(tempMusic);
+    }
+}
+
+AudioClip::~AudioClip() {
+    if (staticData) {
+        if (staticData->frameCount > 0) UnloadSound(*staticData);
+        delete staticData;
+    }
+    if (streamData) {
+        if (streamData->frameCount > 0) UnloadMusicStream(*streamData);
+        delete streamData;
+    }
+}
+
+// Move Constructor
+AudioClip::AudioClip(AudioClip&& other) noexcept 
+    : staticData(other.staticData),
+        streamData(other.streamData),
+        path(std::move(other.path)),
+        type(other.type),
+        defaultChannel(other.defaultChannel) {
+    
+    // Nullify the temporary source object so its destructor doesn't clear the hardware buffer
+    other.staticData = nullptr;
+    other.streamData = nullptr;
+}
+
+// Move Assignment Operator
+AudioClip& AudioClip::operator=(AudioClip&& other) noexcept {
+    if (this != &other) {
+        // Clean up own existing allocations first
+        if (staticData) {
+            if (staticData->frameCount > 0) UnloadSound(*staticData);
+            delete staticData;
+        }
+        if (streamData) {
+            if (streamData->frameCount > 0) UnloadMusicStream(*streamData);
+            delete streamData;
+        }
+
+        // Steal the references
+        staticData = other.staticData;
+        streamData = other.streamData;
+        path = std::move(other.path);
+        type = other.type;
+        defaultChannel = other.defaultChannel;
+
+        other.staticData = nullptr;
+        other.streamData = nullptr;
+    }
+    return *this;
+}
+
+void AudioManager::init() {
+    InitAudioDevice();
+    ensureChannelExists(0);
+    channelVolumes[0] = 0.5f;
+    SetMasterVolume(channelVolumes[0]);
+    PBOX_INFO("AUIDO_MAN: Audio device backend initialized.");
+}
+
+void AudioManager::terminate() {
+    std::vector<int> activeKeys;
+    for (auto& [channel, stream] : activeStreams) {
+        activeKeys.push_back(channel);
+    }
+    for (int key : activeKeys) {
+        stopChannelStream(key);
+    }
+    CloseAudioDevice();
+    PBOX_INFO("AUDIO_MAN: Audio device backend closed.");
+}
+
+void AudioManager::ensureChannelExists(int channelIdx) {
+    if (channelIdx >= static_cast<int>(channelVolumes.size())) {
+        channelVolumes.resize(channelIdx + 1, 0.8f); 
+    }
+}
+
+void AudioManager::setChannelVolume(int channelIdx, float volume) {
+    if (channelIdx < 0) return;
+    ensureChannelExists(channelIdx);
+
+    channelVolumes[channelIdx] = std::clamp(volume, 0.0f, 1.0f);
+
+    if (channelIdx == 0) {
+        SetMasterVolume(channelVolumes[0]);
+        return;
+    }
+
+    if (activeStreams.count(channelIdx) && activeStreams[channelIdx].isActive) {
+        SetMusicVolume(*activeStreams[channelIdx].streamRef, channelVolumes[channelIdx]);
+    }
+}
+
+float AudioManager::getChannelVolume(int channelIdx) const {
+    if (channelIdx < 0 || channelIdx >= static_cast<int>(channelVolumes.size())) return 0.0f;
+    return channelVolumes[channelIdx];
+}
+
+void AudioManager::playClip(const AudioClip* clip, bool shouldLoop) {
+    if (!clip) return;
+
+    int channel = clip->getDefaultChannel();
+    ensureChannelExists(channel);
+
+    if (clip->getType() == AudioClip::AudioType::STATIC_SFX) {
+        const Sound* sfx = clip->getStaticData();
+        if (sfx) {
+            SetSoundVolume(*sfx, channelVolumes[channel]);
+            PlaySound(*sfx);
+        }
+    } else if (clip->getType() == AudioClip::AudioType::STREAM_MUSIC) {
+        stopChannelStream(channel);
+
+        Music* stream = clip->getStreamData();
+        if (stream) {
+            stream->looping = shouldLoop;
+            PlayMusicStream(*stream);
+            SetMusicVolume(*stream, channelVolumes[channel]);
+            activeStreams[channel] = ActiveStream{ stream, true };
+        }
+    }
+}
+
+void AudioManager::stopChannelStream(int channelIdx) {
+    if (activeStreams.count(channelIdx) && activeStreams[channelIdx].isActive) {
+        StopMusicStream(*activeStreams[channelIdx].streamRef);
+        activeStreams.erase(channelIdx);
+    }
+}
+
+void AudioManager::update() {
+    for (auto& [channel, stream] : activeStreams) {
+        if (stream.isActive) {
+            UpdateMusicStream(*stream.streamRef);
+        }
+    }
+}

@@ -1,0 +1,15 @@
+# Ignore the CMake build directories
+build/
+.cmake/
+
+# Ignore compiled static libraries and binaries
+bin/
+lib/
+*.a
+*.o
+*.so
+
+# Ignore local IDE or editor configurations
+.vscode/
+.idea/
+*.swp
