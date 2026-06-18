@@ -9,6 +9,7 @@
 using namespace piko;
 
 Engine::Engine() {
+    PBOX_INFO("PIKOBOX INITIALIZING........");
     assetMAN = new AssetManager();
     renderMAN = new Renderer();
     audioMAN = new AudioManager();
@@ -24,7 +25,7 @@ Engine::Engine() {
 }
 
 void Engine::init(const char *title, int width, int height, bool fullscreen, bool resizeable, int targetFPS) {
-    PBOX_INFO("PANDORA BOX INITIALIZING........");
+    PBOX_INFO("WINDOW INITIALIZING........");
     PBOX_INFO("TITLE: %s", title);
     PBOX_INFO("DIMENSION: %dpx x %dpx", width, height);
     PBOX_INFO("TARGET FPS: %d", targetFPS);
@@ -43,7 +44,7 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
         PBOX_ERROR("FAILED TO INITIALIZE WINDOW.");
         return;
     }
-    
+    PBOX_INFO("WINDOW SUCCESSFULLY INITIALIZED");
 
     SetTargetFPS(targetFPS);
     Global::GetVar().fullscreen = IsWindowFullscreen();
@@ -66,6 +67,8 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
 
     renderMAN->init(activeShader, &activeCam);
     audioMAN->init();
+
+    PBOX_INFO("PIKOBOX ENGINE SUCCESSFULLY INITIALIZED!");
 }
 
 void Engine::terminate() {
