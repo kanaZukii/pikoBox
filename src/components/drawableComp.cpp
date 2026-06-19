@@ -79,10 +79,6 @@ SpriteRenderer::SpriteRenderer(const Sprite* spr) : Drawable() {
 } 
 
 void SpriteRenderer::setSprite(const Sprite* spr){
-    if(!sprite && spr){
-        size = {(float)spr->source.w, (float)spr->source.h};
-    }
-
     sprite = spr;
 }
 
