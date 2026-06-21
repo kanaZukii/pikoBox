@@ -42,6 +42,7 @@ namespace piko {
             void exit();
 
             const DeltaTime& getDt() { return dt; }
+            const RenderTexture2D& getDrawCanvas() {return *drawCanvas;}
 
             int getWindowW();
             int getWindowH();

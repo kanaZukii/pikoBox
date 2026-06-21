@@ -285,7 +285,7 @@ namespace piko {
             Scene* createScene(std::string key);
             Scene* getScene(std::string key);
             
-            void setScene(std::string key);
+            Scene* setScene(std::string key);
             Scene* getCurrentScene(){return currentScene;}
 
             void initScene();

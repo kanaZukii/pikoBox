@@ -695,17 +695,18 @@ Scene* SceneManager::getScene(std::string key) {
     }
 }
 
-void SceneManager::setScene(std::string key) {
+Scene* SceneManager::setScene(std::string key) {
   if (key.empty() || scenes.find(key) == scenes.end()) {
     PBOX_ERROR("SCENE_MAN: Cannot find the scene '%s'.", key.c_str());
-    return;
+    return nullptr;
   }
 
   if(currentScene){
-     if(currentScene->name == key) return;
+     if(currentScene->name == key) return currentScene;
   }
 
   currentScene = scenes[key].get();
+  return currentScene;
 }
 
 void SceneManager::initScene() {
