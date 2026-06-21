@@ -32,10 +32,12 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     
     SetTraceLogLevel(LOG_NONE);
 
+    exitWindow = false; 
+
     if (fullscreen){ SetConfigFlags(FLAG_FULLSCREEN_MODE);}
     if (resizeable){ SetConfigFlags(FLAG_WINDOW_RESIZABLE);}
 
-    setWinSize(width, height);
+    setWindowSize(width, height);
     setTitle(title);
 
     InitWindow(Global::GetVar().windowWidth, Global::GetVar().windowHeight,
@@ -73,7 +75,6 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
 
 void Engine::terminate() {
     PBOX_INFO("CLEANING UP.......");
-    running = false;
 
     audioMAN->terminate();
 
@@ -161,10 +162,10 @@ void Engine::draw(){
 }
 
 bool Engine::shouldCloseWindow(){
-    return WindowShouldClose();
+    return exitWindow || WindowShouldClose();
 }
 
-void Engine::setDrawBufferSize(int width, int height) {
+void Engine::setDrawCanvasSize(int width, int height) {
     PBOX_INFO("SETTING DRAW BUFFER SIZE TO %d x %d.....", width, height);
     if (drawLayer0->id != 0) { UnloadRenderTexture(*drawLayer0); }
     if (drawLayer1->id != 0) { UnloadRenderTexture(*drawLayer1); }
@@ -193,7 +194,7 @@ void Engine::setTitle(const char *title) {
     }
 }
 
-void Engine::setWinSize(int width, int height) {
+void Engine::setWindowSize(int width, int height) {
     Global::GetVar().windowWidth = width;
     Global::GetVar().windowHeight = height;
     if (IsWindowReady()) {
@@ -211,4 +212,20 @@ void Engine::setFullScreen(bool fullscreen) {
     }
 }
 
-void Engine::exit() { running = false; }
+int Engine::getWindowW(){
+    return Global::GetVar().windowWidth;
+}
+
+int Engine::getWindowH(){
+    return Global::GetVar().windowHeight;
+}
+
+int Engine::getDrawCanvasW(){
+    return Global::GetVar().canvasWidth;
+}
+
+int Engine::getDrawCanvasH(){
+    return Global::GetVar().canvasHeight;
+}
+
+void Engine::exit() { exitWindow = true; }

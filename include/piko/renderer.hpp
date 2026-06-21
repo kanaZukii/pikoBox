@@ -14,8 +14,8 @@ namespace piko {
     class TextureIMG;
     class Cam;
     class RenderShader;
-
-    struct DrawCommand{
+    
+    struct RenderQuad {
         const TextureIMG* texture = nullptr;
         Rect source = {0};
         Rect dest = {0};
@@ -48,7 +48,7 @@ namespace piko {
         RenderBatch& operator=(RenderBatch&& other) noexcept;
 
         void init();
-        bool add(const DrawCommand& cmd);
+        bool add(const RenderQuad& rQuad);
 
         void flush(RenderShader* shader, Cam* camera);
 
@@ -83,13 +83,13 @@ namespace piko {
         std::array<Vertex, MAX_QUADS * 4> vertices;
         std::array<const TextureIMG*, MAX_TEXTURES> textures;
         
-        std::array<DrawCommand, MAX_QUADS> cmds;
-        std::array<int, MAX_QUADS> cmdTexSlots;
+        std::array<RenderQuad, MAX_QUADS> rQuads;
+        std::array<int, MAX_QUADS> rQuadTexSlots;
 
         std::array<int, MAX_TEXTURES> texSlots = {0,1,2,3,4,5,6,7};
 
         int getTextureSlot(const TextureIMG* tex);
-        void loadVertexProperties(const DrawCommand& cmd, Vertex* quadPtr, int texSlot);
+        void loadVertexProperties(const RenderQuad& rQuad, Vertex* quadPtr, int texSlot);
 
         std::vector<uint32_t> generateIndices();
         friend class Renderer;
@@ -137,9 +137,9 @@ namespace piko {
 
     private:
         Renderer(){}
-        static constexpr int MAX_COMMANDS = 50000;
-        int cmdCount = 0;
-        DrawCommand commands[MAX_COMMANDS];
+        static constexpr int MAX_RQUAD = 50000;
+        int rQuadCount = 0;
+        RenderQuad rQuadQueue[MAX_RQUAD];
         std::vector<RenderBatch> batches;
         Cam* activeCam = nullptr;
         RenderShader* activeShader = nullptr;

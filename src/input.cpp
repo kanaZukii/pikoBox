@@ -33,6 +33,22 @@ bool InputManager::unbindMouseAct(const std::string& action){
     return true;
 }
 
+bool InputManager::isKeyDown(const int& key){
+    return IsKeyDown(static_cast<KeyboardKey>(key));
+}
+
+bool InputManager::isKeyPressed(const int& key){
+    return IsKeyPressed(static_cast<KeyboardKey>(key));
+}
+
+bool InputManager::isMouseDown(const int& btn){
+    return IsMouseButtonDown(static_cast<MouseButton>(btn));
+}
+
+bool InputManager::isMousePressed(const int& btn){
+    return IsMouseButtonPressed(static_cast<MouseButton>(btn));
+}
+
 // Helper: Returns true ONLY if every single key in this specific combo vector is held down
 bool isSubComboDown(const std::vector<int>& keys) {
     if (keys.empty()) return false;
@@ -67,14 +83,6 @@ bool InputManager::isActionDown(const std::string& action) const {
         }
     }
     return false;
-}
-
-bool InputManager::isMouseDown(const int& btn){
-    return IsMouseButtonDown(static_cast<MouseButton>(btn));
-}
-
-bool InputManager::isMousePressed(const int& btn){
-    return IsMouseButtonPressed(static_cast<MouseButton>(btn));
 }
 
 bool InputManager::isActionPressed(const std::string& action) const {

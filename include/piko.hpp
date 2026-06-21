@@ -27,20 +27,25 @@ namespace piko {
             void update();
             void draw();
 
-            void setDrawBufferSize(int width, int height);
+            void setDrawCanvasSize(int width, int height);
 
-            void setWinSize(int width, int height);
+            void setWindowSize(int width, int height);
             void setFullScreen(bool fullscreen);
 
             void setTitle(const char* title);
             
             bool shouldCloseWindow();
-            bool isRunning(){return running;}
 
             void terminate();
             void exit();
 
             const DeltaTime& getDt() { return dt; }
+
+            int getWindowW();
+            int getWindowH();
+            
+            int getDrawCanvasW();
+            int getDrawCanvasH();
 
             AssetManager& assets() { return *assetMAN; }
             SceneManager& scenes() { return *sceneMAN; }
@@ -58,7 +63,7 @@ namespace piko {
             Renderer* renderMAN = nullptr;
             PhysicsEngine* physicsMAN = nullptr;
 
-            bool running = true;
+            bool exitWindow = false;
 
             RenderTexture2D* drawLayer0 = nullptr;
             RenderTexture2D* drawLayer1 = nullptr;

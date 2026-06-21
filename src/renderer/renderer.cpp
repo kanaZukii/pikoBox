@@ -7,6 +7,7 @@
 #include "raylib.h"
 #include "rlgl.h"
 #include "external/glad.h"
+#include "global.hpp"
 
 #include <algorithm>
 
@@ -31,8 +32,8 @@ RenderBatch::RenderBatch(RenderBatch&& other) noexcept
       clipRegion(other.clipRegion),
       vertices(std::move(other.vertices)), 
       textures(std::move(other.textures)),
-      cmds(std::move(other.cmds)),
-      cmdTexSlots(std::move(other.cmdTexSlots)) 
+      rQuads(std::move(other.rQuads)),
+      rQuadTexSlots(std::move(other.rQuadTexSlots)) 
 {
     other.VAO = 0;
     other.VBO = 0;
@@ -58,8 +59,8 @@ RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept {
         vertices = std::move(other.vertices);
         textures = std::move(other.textures);
 
-        cmds = std::move(other.cmds);
-        cmdTexSlots = std::move(other.cmdTexSlots);
+        rQuads = std::move(other.rQuads);
+        rQuadTexSlots = std::move(other.rQuadTexSlots);
 
         other.VAO = 0;
         other.VBO = 0;
@@ -123,48 +124,48 @@ std::vector<uint32_t> RenderBatch::generateIndices()
     return indices;
 }
 
-void RenderBatch::loadVertexProperties(const DrawCommand& cmd, Vertex* quadptr, int texSlot) {
+void RenderBatch::loadVertexProperties(const RenderQuad& rQuad, Vertex* quadptr, int texSlot) {
     // Pre-calculate trig
-    const float rad = cmd.rotation * DEG2RAD;
+    const float rad = rQuad.rotation * DEG2RAD;
     const float cosA = cosf(rad);
     const float sinA = sinf(rad);
 
-    const float w = cmd.dest.w;
-    const float h = cmd.dest.h;
+    const float w = rQuad.dest.w;
+    const float h = rQuad.dest.h;
     
     // Local coordinates relative to origin
-    const float x0 = 0.0f - cmd.origin.x;
-    const float y0 = 0.0f - cmd.origin.y;
-    const float x1 = w - cmd.origin.x;
-    const float y1 = h - cmd.origin.y;
+    const float x0 = 0.0f - rQuad.origin.x;
+    const float y0 = 0.0f - rQuad.origin.y;
+    const float x1 = w - rQuad.origin.x;
+    const float y1 = h - rQuad.origin.y;
 
     const float localX[4] = { x0, x1, x1, x0 };
     const float localY[4] = { y0, y0, y1, y1 };
 
     // Texture Coordinates
     float uMin = 0.0f, vMin = 0.0f, uMax = 1.0f, vMax = 1.0f;
-    if (cmd.texture != nullptr) {
-        const float invW = cmd.texture->getInvWidth();
-        const float invH = cmd.texture->getInvHeight();
-        uMin = cmd.source.x * invW;
-        vMin = cmd.source.y * invH;
-        uMax = (cmd.source.x + cmd.source.w) * invW;
-        vMax = (cmd.source.y + cmd.source.h) * invH;
+    if (rQuad.texture != nullptr) {
+        const float invW = rQuad.texture->getInvWidth();
+        const float invH = rQuad.texture->getInvHeight();
+        uMin = rQuad.source.x * invW;
+        vMin = rQuad.source.y * invH;
+        uMax = (rQuad.source.x + rQuad.source.w) * invW;
+        vMax = (rQuad.source.y + rQuad.source.h) * invH;
     }
     
     const float uvs[4][2] = { {uMin, vMin}, {uMax, vMin}, {uMax, vMax}, {uMin, vMax} };
 
     // Color normalization
-    const float r = cmd.tint.r / 255.0f;
-    const float g = cmd.tint.g / 255.0f;
-    const float b = cmd.tint.b / 255.0f;
-    const float a = cmd.tint.a / 255.0f;
+    const float r = rQuad.tint.r / 255.0f;
+    const float g = rQuad.tint.g / 255.0f;
+    const float b = rQuad.tint.b / 255.0f;
+    const float a = rQuad.tint.a / 255.0f;
     const float tid = (float)texSlot;
-    const float z = (float)cmd.zIndex;
+    const float z = (float)rQuad.zIndex;
 
     for(int i = 0; i < 4; i++) {
-        quadptr[i].x = (localX[i] * cosA - localY[i] * sinA) + cmd.dest.x;
-        quadptr[i].y = (localX[i] * sinA + localY[i] * cosA) + cmd.dest.y;
+        quadptr[i].x = (localX[i] * cosA - localY[i] * sinA) + rQuad.dest.x;
+        quadptr[i].y = (localX[i] * sinA + localY[i] * cosA) + rQuad.dest.y;
         quadptr[i].z = z;
         
         quadptr[i].r = r;
@@ -179,18 +180,18 @@ void RenderBatch::loadVertexProperties(const DrawCommand& cmd, Vertex* quadptr, 
     }
 }
 
-bool RenderBatch::add(const DrawCommand& cmd){
-    if(quadCount >= MAX_QUADS || cmd.zIndex != zIndex) return false;
+bool RenderBatch::add(const RenderQuad& rQuad){
+    if(quadCount >= MAX_QUADS || rQuad.zIndex != zIndex) return false;
 
-    int texSlot = getTextureSlot(cmd.texture);
+    int texSlot = getTextureSlot(rQuad.texture);
     if(texSlot == -1){
         if(texCount >= MAX_TEXTURES){ return false;}
         texSlot = texCount++;
-        textures[texSlot] = cmd.texture;
+        textures[texSlot] = rQuad.texture;
     }
     
-    cmds[quadCount] = cmd;
-    cmdTexSlots[quadCount] = texSlot;
+    rQuads[quadCount] = rQuad;
+    rQuadTexSlots[quadCount] = texSlot;
 
     quadCount++;
     return true;
@@ -213,7 +214,7 @@ void RenderBatch::flush(RenderShader* shader, Cam* camera) {
 
     for (int i = 0; i < quadCount; i++) {
         // Pass the address of the specific 4-vertex block for this quad
-        loadVertexProperties(cmds[i], vPtr, cmdTexSlots[i]);
+        loadVertexProperties(rQuads[i], vPtr, rQuadTexSlots[i]);
         vPtr += 4;
     }
 
@@ -285,30 +286,30 @@ void Renderer::draw(const TextureIMG* tex, Rect texsrc, Rect dest, Vect2 origin,
 {
     bool added = false;
 
-    if(cmdCount >= MAX_COMMANDS){
+    if(rQuadCount >= MAX_RQUAD){
         flush();
-        cmdCount = 0;
+        rQuadCount = 0;
     }
 
-    DrawCommand& cmd = commands[cmdCount++];
-    cmd.texture = tex;
-    cmd.source = texsrc;
-    cmd.dest = dest;
-    cmd.origin = origin;
-    cmd.tint = tint;
-    cmd.zIndex = zIndex;
-    cmd.sortY = sortY;
-    cmd.useScreenSpace = useScreenSpace;
-    cmd.rotation = rotation;
-    cmd.clipRegion = clipRegion;
-    cmd.clip = clip;
+    RenderQuad& rQuad = rQuadQueue[rQuadCount++];
+    rQuad.texture = tex;
+    rQuad.source = texsrc;
+    rQuad.dest = dest;
+    rQuad.origin = origin;
+    rQuad.tint = tint;
+    rQuad.zIndex = zIndex;
+    rQuad.sortY = sortY;
+    rQuad.useScreenSpace = useScreenSpace;
+    rQuad.rotation = rotation;
+    rQuad.clipRegion = clipRegion;
+    rQuad.clip = clip;
     
     for (auto& batch : batches) {
         if (batch.hasRoom() && batch.getZ() == zIndex && batch.hasClipping() == clip 
             && batch.isScreenSpaceMode() == useScreenSpace) {
             // Check if texture fits or already exists in this batch
             if(!clip || batch.getClipRegion() == clipRegion){
-                if (batch.add(cmd)) {
+                if (batch.add(rQuad)) {
                     added = true;
                     break;
                 }
@@ -320,7 +321,7 @@ void Renderer::draw(const TextureIMG* tex, Rect texsrc, Rect dest, Vect2 origin,
         // No suitable batch found? Create a new one!
         RenderBatch newBatch(zIndex, useScreenSpace, clip, clipRegion);
         newBatch.init(); // Setup VAO/VBO/EBO
-        newBatch.add(cmd);
+        newBatch.add(rQuad);
         batches.push_back(std::move(newBatch));
         
         // Sort batches by Z so we always draw back-to-front
@@ -392,5 +393,5 @@ void Renderer::flush(){
         b.flush(activeShader, activeCam);
     }
 
-    cmdCount = 0;
+    rQuadCount = 0;
 }

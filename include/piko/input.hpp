@@ -98,6 +98,8 @@ namespace piko {
             InputManager(const InputManager&) = delete;
             InputManager& operator=(const InputManager&) = delete;
 
+            void update();
+
             // Configuration API
             // Bind a single chord/combo to an action (appends to existing configurations)
             void bindKey(const std::string& action, const std::vector<int>& rawKeyCodes);
@@ -115,13 +117,14 @@ namespace piko {
             bool unbindKeyAct(const std::string& action);
             bool unbindMouseAct(const std::string& action);
 
-            void update();
-
-            bool isActionDown(const std::string& action) const;
-            bool isActionPressed(const std::string& action) const;
+            bool isKeyDown(const int& key);
+            bool isKeyPressed(const int& key);
 
             bool isMouseDown(const int& btn);
             bool isMousePressed(const int& btn);
+
+            bool isActionDown(const std::string& action) const;
+            bool isActionPressed(const std::string& action) const;
 
             Vect2 getMousePos() const { return {mouse.x, mouse.y};}
             Vect2 getMouseDelta() const { return {mouse.deltaX, mouse.deltaY};}
