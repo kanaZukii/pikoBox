@@ -122,7 +122,7 @@ void Engine::update(){
     sceneMAN->flushSceneDeferredCmds();
 }
 
-void Engine::draw(){
+void Engine::drawBegin(){
     BeginTextureMode(*drawLayer0);
     ClearBackground(BLACK);
 
@@ -158,6 +158,9 @@ void Engine::draw(){
                     (float)-drawLayer1->texture.height},
         (Rectangle){0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
         (Vector2){0, 0}, 0.0f, WHITE);
+}
+
+void Engine::drawEnd(){ 
     EndDrawing();
 }
 

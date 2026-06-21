@@ -25,7 +25,8 @@ namespace piko {
 
             void init(const char* title, int width, int height, bool fullscreen=false, bool resizeable=false, int targetFPS=60);
             void update();
-            void draw();
+            void drawBegin();
+            void drawEnd();
 
             void setDrawCanvasSize(int width, int height);
 
