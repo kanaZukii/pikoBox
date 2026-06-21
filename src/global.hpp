@@ -13,7 +13,6 @@ public:
         int canvasHeight = 720;
 
         RenderTexture2D* drawLayer0 = nullptr;
-        RenderTexture2D* drawLayer1 = nullptr;
 
         float fontSize = 20.0f;
         float volume = 50.0f;

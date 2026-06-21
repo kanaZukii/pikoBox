@@ -51,15 +51,12 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     SetTargetFPS(targetFPS);
     Global::GetVar().fullscreen = IsWindowFullscreen();
 
-    drawLayer0 = new RenderTexture2D;
-    drawLayer1 = new RenderTexture2D;
+    drawCanvas = new RenderTexture2D;
     
-    PBOX_INFO("LOADING RENDER TEXTURES......");
-    *drawLayer0 = LoadRenderTexture(width, height);
-    *drawLayer1 = LoadRenderTexture(width, height);
+    PBOX_INFO("LOADING RENDER TEXTURE......");
+    *drawCanvas = LoadRenderTexture(width, height);
 
-    Global::GetVar().drawLayer0 = drawLayer0;
-    Global::GetVar().drawLayer1 = drawLayer1;
+    Global::GetVar().drawLayer0 = drawCanvas;
     
     PBOX_INFO("SETTING CAMERA........");
     activeCam.setOffset({GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f});
@@ -85,11 +82,9 @@ void Engine::terminate() {
     delete physicsMAN;
     delete audioMAN;
 
-    if (drawLayer0->id != 0) { UnloadRenderTexture(*drawLayer0);}
-    if (drawLayer1->id != 0) { UnloadRenderTexture(*drawLayer1);}
+    if (drawCanvas->id != 0) { UnloadRenderTexture(*drawCanvas);}
 
-    delete drawLayer0;
-    delete drawLayer1;
+    delete drawCanvas;
 
     CloseWindow();
     PBOX_INFO("CLOSED THE WINDOW SUCCESSFULLY");
@@ -123,7 +118,13 @@ void Engine::update(){
 }
 
 void Engine::drawBegin(){
-    BeginTextureMode(*drawLayer0);
+    BeginDrawing();
+    ClearBackground(BLACK);
+}
+
+void Engine::drawScene(){
+
+    BeginTextureMode(*drawCanvas);
     ClearBackground(BLACK);
 
     activeCam.begin();
@@ -142,20 +143,12 @@ void Engine::drawBegin(){
     // DrawFPS(5, 5);
     // EndBlendMode();
     // EndTextureMode();
-
-    BeginDrawing();
     ClearBackground(BLACK);
 
     DrawTexturePro(
-        drawLayer0->texture,
-        (Rectangle){0, 0, (float)drawLayer0->texture.width,
-                    (float)-drawLayer0->texture.height},
-        (Rectangle){0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
-        (Vector2){0, 0}, 0.0f, WHITE);
-    DrawTexturePro(
-        drawLayer1->texture,
-        (Rectangle){0, 0, (float)drawLayer1->texture.width,
-                    (float)-drawLayer1->texture.height},
+        drawCanvas->texture,
+        (Rectangle){0, 0, (float)drawCanvas->texture.width,
+                    (float)-drawCanvas->texture.height},
         (Rectangle){0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
         (Vector2){0, 0}, 0.0f, WHITE);
 }
@@ -170,20 +163,17 @@ bool Engine::shouldCloseWindow(){
 
 void Engine::setDrawCanvasSize(int width, int height) {
     PBOX_INFO("SETTING DRAW BUFFER SIZE TO %d x %d.....", width, height);
-    if (drawLayer0->id != 0) { UnloadRenderTexture(*drawLayer0); }
-    if (drawLayer1->id != 0) { UnloadRenderTexture(*drawLayer1); }
+    if (drawCanvas->id != 0) { UnloadRenderTexture(*drawCanvas); }
 
-    *drawLayer0 = LoadRenderTexture(width, height);
-    *drawLayer1 = LoadRenderTexture(width, height);
+    *drawCanvas = LoadRenderTexture(width, height);
 
-    Global::GetVar().drawLayer0 = drawLayer0;
-    Global::GetVar().drawLayer1 = drawLayer1;
+    Global::GetVar().drawLayer0 = drawCanvas;
 
     Global::GetVar().canvasWidth = width;
     Global::GetVar().canvasHeight = height;
 
     activeCam.setOffset(
-        {drawLayer0->texture.width * 0.5f, drawLayer0->texture.height * 0.5f}
+        {drawCanvas->texture.width * 0.5f, drawCanvas->texture.height * 0.5f}
     );
 
     PBOX_INFO("SUCCESSFULLY SET THE DRAW BUFFER SIZE.");

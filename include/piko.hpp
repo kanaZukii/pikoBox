@@ -26,6 +26,7 @@ namespace piko {
             void init(const char* title, int width, int height, bool fullscreen=false, bool resizeable=false, int targetFPS=60);
             void update();
             void drawBegin();
+            void drawScene();
             void drawEnd();
 
             void setDrawCanvasSize(int width, int height);
@@ -66,8 +67,7 @@ namespace piko {
 
             bool exitWindow = false;
 
-            RenderTexture2D* drawLayer0 = nullptr;
-            RenderTexture2D* drawLayer1 = nullptr;
+            RenderTexture2D* drawCanvas = nullptr;
 
             RenderShader* activeShader = nullptr;
             EventBroker eventBroker;
