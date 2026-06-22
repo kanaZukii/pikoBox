@@ -1,5 +1,6 @@
 #include "piko/scene.hpp"
 #include "piko/renderer.hpp"
+#include "piko/cam.hpp"
 #include "piko/logger.hpp"
 
 #include "raylib.h"
@@ -14,6 +15,9 @@ uint32_t Scene::entityNextID = 0;
 std::vector<uint32_t> Scene::entityDiscardedIDs = {};
 
 void Scene::init(){
+    sceneCam->setPosition(initCamPos);
+    sceneCam->setZoom(initCamZoom);
+
     for (std::unique_ptr<Component> &c : components) {
         if (c) { c->init(); }
     }
@@ -22,11 +26,17 @@ void Scene::init(){
 
 void Scene::update(float dt) {
     for(Script* s: scripts){
-        if(s) { s->earlyUpdate(dt); }
+        if(s) { 
+            if(!s->isUpdating()){continue;}
+            s->earlyUpdate(dt);
+        }
     }
 
     for (std::unique_ptr<Component> &c : components) {
-        if (c) { c->update(dt); }
+        if (c) { 
+            if(!c->isUpdating()){continue;}
+            c->update(dt); 
+        }
     }
 }
 
@@ -495,7 +505,14 @@ void Scene::deserializeEntity(const uint32_t& entityId, const std::string& rawJs
 }
 
 std::string Scene::serialize(){
-    json data = {{"name", name}};
+    json data = {
+        {"name", name},
+        {"camera", {
+            {"x", initCamPos.x},
+            {"y", initCamPos.y},
+            {"zoom", initCamZoom}
+        }}
+    };
     json serializedEntities = json::object(); // Explicitly force this to be a key-value dictionary mapping
     
     for (const auto &[key, val] : entityByIDs) {
@@ -518,6 +535,13 @@ std::string Scene::serialize(){
 
 void Scene::deserialize(const std::string& rawJson) {
     json sceneData = json::parse(rawJson);
+
+    if (sceneData.contains("camera") && sceneData["camera"].is_object()){
+        auto camJson = sceneData["camera"];
+        initCamPos.x = camJson.value("x", 0.0f);
+        initCamPos.y = camJson.value("y", 0.0f);
+        initCamZoom = camJson.value("zoom", 1.0f);
+    }
 
     if (!sceneData.contains("entities") || !sceneData["entities"].is_object()) return;
 
@@ -637,19 +661,22 @@ SceneManager::SceneManager(){
 }
 
 void SceneManager::initRegistry() {
-    registerType("Component",          []() { return new Component(); });
-    registerType("PhysicsBody",        []() { return new PhysicsBody(); });
-    registerType("CollisionResScript",  []() { return new CollisionResScript(); });
-    registerType("PlayerMoveScript",     []() { return new PlayerMoveScript(); });
-    registerType("BoxCollider",        []() { return new BoxCollider(); }); 
-    registerType("SpriteRenderer",     []() { return new SpriteRenderer(); });
-    registerType("TextRenderer",       []() { return new TextRenderer(); });
-    registerType("AnimationPlayer",    []() { return new AnimationPlayer(); });
-    registerType("AudioPlayer",        []() { return new AudioPlayer(); });
-    registerType("TextBoxRenderer",        []() { return new TextBoxRenderer(); });
-    registerType("ButtonScript",        []() { return new ButtonScript(); });
-    registerType("UIPanel",        []() { return new UIPanel(); });
-    registerType("CameraMoveScript",        []() { return new CameraMoveScript(); });
+    registerComponentType<Component>("Component");
+    registerComponentType<Drawable>("Drawable");
+    registerComponentType<Collidable>("Collidable");
+    registerComponentType<Script>("Script");
+    registerComponentType<PhysicsBody>("PhysicsBody");
+    registerComponentType<AnimationPlayer>("AnimationPlayer");
+    registerComponentType<AudioPlayer>("AudioPlayer");
+    registerComponentType<SpriteRenderer>("SpriteRenderer");
+    registerComponentType<TextRenderer>("TextRenderer");
+    registerComponentType<TextBoxRenderer>("TextBoxRenderer");
+    registerComponentType<UIPanel>("UIPanel");
+    registerComponentType<BoxCollider>("BoxCollider");
+    registerComponentType<CollisionResScript>("CollisionResScript");
+    registerComponentType<PlayerMoveScript>("PlayerMoveScript");
+    registerComponentType<CameraMoveScript>("CameraMoveScript");
+    registerComponentType<ButtonScript>("ButtonScript");
 }
 
 Scene *SceneManager::createScene(std::string key) {

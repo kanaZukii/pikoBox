@@ -50,6 +50,8 @@ namespace piko {
 
             virtual ~Scene() = default;
             const std::string& getName() const {return name;}
+            void setInitCamPosition(Vect2 pos){initCamPos = pos;}
+            void setInitCamZoom(float zoom){initCamZoom = zoom;}
 
             Entity* createEntity(std::string key);
 
@@ -230,6 +232,8 @@ namespace piko {
             void setGameCamera(Cam* cam) { sceneCam = cam; }
             
             std::string name = "Scene";
+            Vect2 initCamPos = {0.0f, 0.0f};
+            float initCamZoom = 1.0f;
             
             friend class SceneManager;
 
@@ -297,10 +301,15 @@ namespace piko {
             bool saveSceneToFile(std::string path, std::string key=""); 
             bool loadSceneFromFile(std::string path);
 
-            void registerType(const std::string& className, ComponentFactoryFunc factory) {registry[className] = factory;}
             void initEventListeners(EventBroker& broker);
-    
             void processEventRequests();
+
+            template<typename T>
+            void registerComponentType(const std::string& className) {
+                registry[className] = []() -> Component* {
+                        return new T(); 
+                };
+            }
 
             bool isPaused() const { return isGamePaused; }
 

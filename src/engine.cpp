@@ -109,7 +109,10 @@ void Engine::update(){
         physicsMAN->update(dt.physics, sceneMAN->currentScene, simBounds);
 
         for (Script* s : sceneMAN->currentScene->getScripts()) {
-            if (s) s->lateUpdate(dt.physics);
+            if(s){
+                if(!s->isUpdating()){continue;}
+                s->lateUpdate(dt.physics);
+            }
         }
     }
 
