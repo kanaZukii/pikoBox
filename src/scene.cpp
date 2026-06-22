@@ -42,7 +42,10 @@ void Scene::update(float dt) {
 
 void Scene::draw(Renderer &renderer) {
     for (Drawable *d : drawables) {
-        if (d) { d->draw(renderer); }
+        if (d) { 
+            if(!d->isVisible()){continue;}
+            d->draw(renderer); 
+        }
     }
 }
 

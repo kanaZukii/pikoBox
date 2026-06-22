@@ -87,7 +87,7 @@ void SpriteRenderer::update(float dt){
 }
 
 void SpriteRenderer::draw(Renderer& renderer){
-    if((int)color.a <= 0 || !isVisible()) return;
+    if((int)color.a <= 0) return;
     
     const TextureIMG* tex = nullptr; Rect src = {0.0f};
     if(sprite){
@@ -176,7 +176,7 @@ TextRenderer::TextRenderer(const std::string& text) : Drawable() {
 }
 
 void TextRenderer::draw(Renderer& renderer){
-    if((int)color.a <= 0 || !isVisible() || !font) return;
+    if((int)color.a <= 0 || !font) return;
 
     const Rect& bounds = getGlobalTransform();
     
@@ -327,7 +327,7 @@ void TextBoxRenderer::update(float dt) {
 }
 
 void TextBoxRenderer::draw(Renderer& renderer) {
-    if ((int)color.a <= 0 || !isVisible() || cachedLines.empty()) return;
+    if ((int)color.a <= 0 || cachedLines.empty()) return;
 
     const Rect& bounds = getGlobalTransform();
     float scaleFactor = fontSize / (float)font->getBaseSize();
@@ -474,7 +474,7 @@ void UIPanel::update(float dt) {
 }
 
 void UIPanel::draw(Renderer& renderer){
-    if((int)color.a <= 0 || !isVisible()) return;
+    if((int)color.a <= 0) return;
 
     const Rect& bounds = getGlobalTransform();
 
