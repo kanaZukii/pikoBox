@@ -212,6 +212,8 @@ namespace piko {
             const std::vector<Drawable*>& getDrawables() const { return drawables; }
             const std::vector<Script*>& getScripts() const { return scripts; }
 
+            const std::vector<std::string> getEntityNames() const;
+
         protected:
             Scene(){}
 

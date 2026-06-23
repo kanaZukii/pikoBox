@@ -394,6 +394,30 @@ void Scene::setDirtyTransform(const uint32_t &entity) {
     }
 }
 
+const std::vector<std::string> Scene::getEntityNames() const{
+    std::vector<Entity*> ents;
+   
+    for (const auto& entityPtr : entities) {
+        if (entityPtr) {
+            ents.push_back(entityPtr.get());
+        }
+    }
+    std::stable_sort(ents.begin(), ents.end(), [](const Entity* a, const Entity* b) {
+        return a->id < b->id;
+    });
+
+    std::vector<std::string> names;
+    names.reserve(ents.size());
+
+     for (const auto& e : ents) {
+        if (e) {
+            names.push_back(e->alias);
+        }
+    }
+    
+    return names;
+}
+
 std::string Scene::serializeEntity(const uint32_t& entity){
     Entity* e = getEntity(entity);
     if (e == nullptr) {
