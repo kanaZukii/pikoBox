@@ -10,7 +10,7 @@ using json = nlohmann::json;
 using namespace piko;
 
 std::vector<uint32_t>  Component::discardedIDs = {};
-uint32_t Component::nextID = 0;
+uint32_t Component::nextID = 1;
 
 void Component::setOffset(Vect2 position){
     offsetPos.x = position.x;

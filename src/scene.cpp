@@ -11,7 +11,7 @@
 using json = nlohmann::json;
 using namespace piko;
 
-uint32_t Scene::entityNextID = 0;
+uint32_t Scene::entityNextID = 1;
 std::vector<uint32_t> Scene::entityDiscardedIDs = {};
 
 void Scene::init(){
@@ -467,7 +467,7 @@ void Scene::deserializeEntity(const uint32_t& entityId, const std::string& rawJs
         std::vector<ComponentLoadTask> loadQueue;
         
         for (const auto& [compKey, compData] : entJson["components"].items()) {
-            uint32_t cId = compData.value("id", 0);
+            uint32_t cId = compData.value("id", 1);
             loadQueue.push_back({ compKey, cId, compData });
         }
 
@@ -559,7 +559,7 @@ void Scene::deserialize(const std::string& rawJson) {
     std::vector<SortedEntityNode> sortBuffer;
 
     for (const auto& [entityAlias, entityData] : entitiesJson.items()) {
-        uint32_t originalId = entityData.value("id", 0);
+        uint32_t originalId = entityData.value("id", 1);
         sortBuffer.push_back({entityAlias, originalId, entityData});
     }
 
