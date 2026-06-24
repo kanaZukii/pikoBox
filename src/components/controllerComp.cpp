@@ -16,6 +16,7 @@ void AnimationPlayer::update(float dt){
 
     if(rendererPtr && !owner->scene->componentExist(rendererID)){
         rendererPtr = nullptr;
+        stop();
     }
 
     // 1. Lazy-fallback to check if the target renderer string version was set
@@ -100,7 +101,7 @@ void AnimationPlayer::pause(){
 }
 
 void AnimationPlayer::resume(){
-    isPlaying = true;
+    if(currentClip){isPlaying = true;}
 }
 
 std::string AnimationPlayer::serializeClip(const Clip& clip){
@@ -207,7 +208,9 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
     if(data.contains("rendererPtr")){
         std::string rendererStr = data.value("rendererPtr", "");
         owner->scene->addPostLoadJob([this, rendererStr]() {
-            this->rendererPtr = this->owner->scene->getComponent<SpriteRenderer>(this->owner->id, rendererStr);
+            this->setRenderer(
+                this->owner->scene->getComponent<SpriteRenderer>(this->owner->id, rendererStr)
+            );
         });
     }
 
@@ -316,4 +319,217 @@ void AudioPlayer::deserialize(const std::string& rawJson) {
             }
         }
     }
+}
+
+void CompTransformAnimator::update(float dt){
+    if(targetC && !owner->scene->componentExist(targetID)) {
+        targetC = nullptr;
+        stop(); 
+    }
+
+    if (!targetC || !isPlaying || !currentClip || currentClip->keyframes.empty()) return;
+
+    const TransformFrame& frame = currentClip->keyframes[currentFrameIndex];
+    frameTimer += dt;
+
+    // Establish a completely stable layout origin baseline
+    Rect startTransform;
+    if (currentFrameIndex > 0) {
+        // Normal sequence: start from the previous keyframe's target destination
+        startTransform = currentClip->keyframes[currentFrameIndex - 1].target;
+    } else {
+        // Rollover sequence: if looping, smoothly interpolate from the absolute final frame target!
+        if (currentClip->loop && currentClip->keyframes.size() > 1) {
+            startTransform = currentClip->keyframes.back().target;
+        } else {
+            // Fallback for absolute first-run frame entry initialization step
+            startTransform = frame.target; 
+        }
+    }
+
+    // Compute Alpha Clamped Execution Threshold
+    float alpha = frameTimer / frame.duration;
+    if (alpha > 1.0f) alpha = 1.0f;
+
+    Rect frameTransform;
+    // Apply Linear Interpolation transformations predictably using the static boundary snapshots
+    frameTransform.x = startTransform.x + alpha * (frame.target.x - startTransform.x);
+    frameTransform.y = startTransform.y + alpha * (frame.target.y - startTransform.y);
+    frameTransform.w = startTransform.w + alpha * (frame.target.w - startTransform.w);
+    frameTransform.h = startTransform.h + alpha * (frame.target.h - startTransform.h);
+    
+    targetC->setOffset({frameTransform.x, frameTransform.y});
+    targetC->setSize({frameTransform.w, frameTransform.h});
+
+    // Handle frame sequence steps rollover updates conditions check logic blocks
+    if (frameTimer >= frame.duration) {
+        // Delta overflow tracking ensures time isn't lost on frame boundary drops
+        float overflowTime = frameTimer - frame.duration; 
+        frameTimer = overflowTime; 
+        currentFrameIndex++;
+
+        if (currentFrameIndex >= static_cast<int>(currentClip->keyframes.size())) {
+            if (currentClip->loop) {
+                currentFrameIndex = 0;
+            } else {
+                isPlaying = false;
+                currentFrameIndex = static_cast<int>(currentClip->keyframes.size()) - 1;
+                frameTimer = 0.0f;
+            }
+        }
+    }
+}
+
+void CompTransformAnimator::setTargetComponent(uint32_t c){
+    targetC = owner->scene->getComponent<Component>(c);
+    targetID = c;
+}
+
+void CompTransformAnimator::setTargetComponent(Component* c){
+    targetC = c;
+    if(targetC){
+        targetID = targetC->getID();
+    }
+}
+
+void CompTransformAnimator::addClip(const TransformClip& clip){
+    clips[clip.name] = clip;
+}
+
+void CompTransformAnimator::play(const std::string& name){
+    if (currentClip){
+        if(currentClip->name == name && isPlaying) return;
+    }
+
+    auto it = clips.find(name);
+    if (it != clips.end()) {
+        currentClip = &it->second;
+        currentFrameIndex = 0;
+        frameTimer = 0.0f;
+        isPlaying = true;
+    }
+}
+
+void CompTransformAnimator::stop(){
+    currentFrameIndex = 0;
+    frameTimer = 0.0f;
+    isPlaying = false;
+}
+
+void CompTransformAnimator::pause(){
+    isPlaying = false;
+}
+
+void CompTransformAnimator::resume(){
+    if(currentClip){isPlaying = true;}
+}
+
+std::string CompTransformAnimator::serialize(){
+    json data = json::parse(Component::serialize());
+    data["currentFrameIndex"] = currentFrameIndex;
+    data["frameTimer"] = frameTimer;
+    data["isPlaying"] = isPlaying;
+
+    if(currentClip){
+        data["currentClip"] = currentClip->name;
+    }
+
+    if(targetC){
+        data["targetC"] = targetC->getAlias();
+    }
+
+    if(!clips.empty()){
+        json serializedClips = json::object();
+        for(const auto& [key, val] : clips) serializedClips[key] = json::parse(serializeClip(val));
+        data["clips"] = serializedClips;
+    }
+    return data.dump();
+}
+
+void CompTransformAnimator::deserialize(const std::string& rawJson){
+    Component::deserialize(rawJson);
+    json data = json::parse(rawJson);
+
+    isPlaying = data.value("isPlaying", false); 
+    frameTimer = data.value("frameTimer", 0.0f);
+    currentFrameIndex = data.value("currentFrameIndex", 0);
+
+    if (data.contains("clips") && data["clips"].is_object()) {
+        this->clips.clear();
+
+        for (const auto& [clipName, clipData] : data["clips"].items()) {
+            std::string serializedClipState = clipData.dump();
+            this->clips[clipName] = deserializeClip(clipName, serializedClipState);
+        }
+    }
+
+    targetC = nullptr;
+    if(data.contains("targetC")){
+        std::string compStr = data.value("targetC", "");
+        owner->scene->addPostLoadJob([this, compStr]() {
+            this->setTargetComponent(
+                this->owner->scene->getComponent<Component>(this->owner->id, compStr)
+            );
+        });
+    }
+
+    currentClip = nullptr;
+    if(data.contains("currentClip")){
+        std::string clipName = data.value("currentClip", "");
+        auto it = this->clips.find(clipName);
+        if(it != this->clips.end()) {
+            currentClip = &(it->second);
+        }
+    }
+}
+
+
+std::string CompTransformAnimator::serializeClip(const TransformClip& clip){
+    json serializedKeyframes = json::array();
+    
+    for(const TransformFrame& f : clip.keyframes ){
+        json frameJson = {
+            {"duration", f.duration},
+            {"target", {
+                {"x", f.target.x}, {"y", f.target.y}, 
+                {"w", f.target.w}, {"h", f.target.h}
+            }}
+        };
+        serializedKeyframes.push_back(frameJson);
+    }
+    json data = {
+        {"loop", clip.loop},
+        {"keyframes", serializedKeyframes}
+    };
+    
+    return data.dump();
+}
+
+CompTransformAnimator::TransformClip CompTransformAnimator::deserializeClip(
+    const std::string& clipName, const std::string& rawJson){
+
+    json data = json::parse(rawJson);
+    
+    TransformClip clip;
+    clip.name = clipName;
+    clip.loop = data.value("loop", true);
+
+    if (data.contains("keyframes") && data["keyframes"].is_array()) {
+        for (const auto& frameJson : data["keyframes"]) {
+            TransformFrame keyframe;
+            
+            keyframe.duration = frameJson.value("duration", 0.2f);
+            
+            if (frameJson.contains("target")) {
+                keyframe.target.x = frameJson["target"].value("x", 0.0f);
+                keyframe.target.y = frameJson["target"].value("y", 0.0f);
+                keyframe.target.w = frameJson["target"].value("w", 0.0f);
+                keyframe.target.h = frameJson["target"].value("h", 0.0f);
+            }
+
+            clip.keyframes.push_back(keyframe);
+        }
+    }
+
+    return clip;
 }

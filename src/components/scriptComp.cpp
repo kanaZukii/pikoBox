@@ -125,44 +125,44 @@ void PlayerMoveScript::deserialize(const std::string& rawJson) {
 void ButtonScript::attachSpriteRenderer(uint32_t sprrenderer){
     bgId = sprrenderer;
     bgrenderer = owner->scene->getComponent<SpriteRenderer>(sprrenderer);
+    if(colorControl){bgrenderer->setColor(bgColor);}
 }
 
 void ButtonScript::attachTextBoxRenderer(uint32_t txtrenderer){
     txtId = txtrenderer;
     textrenderer = owner->scene->getComponent<TextBoxRenderer>(txtrenderer);
+    if(colorControl){textrenderer->setColor(textColor);}
 }
 
 void ButtonScript::attachSpriteRenderer(SpriteRenderer* sprrenderer) {
     bgrenderer = sprrenderer;
     if (bgrenderer) {
-        bgrenderer->setColor(bgColor);
         bgId = bgrenderer->getID();
+        if(colorControl){bgrenderer->setColor(bgColor);}
     }
 }
 
 void ButtonScript::attachTextBoxRenderer(TextBoxRenderer* txtrenderer) {
     textrenderer = txtrenderer;
     if (textrenderer) {
-        textrenderer->setText(label);
-        textrenderer->setColor(textColor);
         txtId = textrenderer->getID();
+        if(colorControl){textrenderer->setColor(textColor);}
     }
 }
 
 void ButtonScript::attachSpriteRenderer(const std::string& sprrenderer){
     bgrenderer = owner->scene->getComponent<SpriteRenderer>(ownerID, sprrenderer);
     if (bgrenderer) {
-        bgrenderer->setColor(bgColor);
         bgId = bgrenderer->getID();
+        if(colorControl){bgrenderer->setColor(bgColor);}
     }
 }
 
 void ButtonScript::attachTextBoxRenderer(const std::string& txtrenderer){
     textrenderer = owner->scene->getComponent<TextBoxRenderer>(ownerID, txtrenderer);
     if (textrenderer) {
-        textrenderer->setText(label);
-        textrenderer->setColor(textColor);
         txtId = textrenderer->getID();
+        if(colorControl){textrenderer->setColor(textColor);}
     }
 }
 
@@ -201,20 +201,20 @@ void ButtonScript::onEarlyUpdate(float dt) {
         }
 
         // 2. Set Visual Targets
-        targetScale = hoverScale;
         if (hoverEffect) {
-            if (bgrenderer)   bgrenderer->setColor(bgHover);
-            if (textrenderer) textrenderer->setColor(textHover);
+            targetScale = hoverScale;
+            if (bgrenderer && colorControl)   bgrenderer->setColor(bgHover);
+            if (textrenderer && colorControl) textrenderer->setColor(textHover);
         }
     } else {
         // Reset Visual Targets on Leave Bounds
         targetScale = 1.0f;
-        if (bgrenderer)   bgrenderer->setColor(bgColor);
-        if (textrenderer) textrenderer->setColor(textColor);
+        if (bgrenderer && colorControl)   bgrenderer->setColor(bgColor);
+        if (textrenderer && colorControl) textrenderer->setColor(textColor);
     }
 
     // 3. Smooth Frame Interpolation (Lerp Math)
-    if(!bgrenderer) return;
+    if(!bgrenderer && hoverEffect) return;
     if (std::abs(currentScale - targetScale) > 0.001f) {
         currentScale += (targetScale - currentScale) * scaleSpeed * dt;
         
@@ -232,6 +232,7 @@ std::string ButtonScript::serialize(){
     json data = json::parse(Component::serialize());
     data["label"] = label;
     data["hoverEffect"] = hoverEffect;
+    data["colorControl"] = colorControl;
     data["bgColor"] = {{"r", bgColor.r},{"g", bgColor.g},{"b", bgColor.b},{"a", bgColor.a}};
     data["textColor"] = {{"r", textColor.r},{"g", textColor.g},{"b", textColor.b},{"a", textColor.a}};
     if(hoverEffect){
@@ -257,6 +258,7 @@ void ButtonScript::deserialize(const std::string& rawJson){
 
     label = data.value("label", "");
     hoverEffect = data.value("hoverEffect", true);
+    colorControl = data.value("colorControl", true);
     hoverScale = data.value("hoverScale", 1.05f);
 
     if (data.contains("bgColor") && data["bgColor"].is_object()){
@@ -304,6 +306,12 @@ void ButtonScript::deserialize(const std::string& rawJson){
         std::string rendererStr = data.value("textrenderer", "");
         owner->scene->addPostLoadJob([this, rendererStr]() {
             this->attachTextBoxRenderer(rendererStr);
+        });
+    }
+    
+    if(!label.empty()){
+        owner->scene->addPostLoadJob([this]() {
+            this->setLabel(this->label);
         });
     }
 

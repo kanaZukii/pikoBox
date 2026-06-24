@@ -102,6 +102,25 @@ namespace piko {
             }
 
             template<typename T>
+            T* getComponent(std::string entity, const std::string& comp){
+                std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
+                auto it = e_clist.find(comp);
+
+                if(it != e_clist.end()) {
+                    auto index = componentByIDs.find(it->second);
+
+                    if(index != componentByIDs.end()) {
+                        Component* base = components[index->second].get();
+                        return dynamic_cast<T*>(base);
+                    }else {
+                        return nullptr;
+                    }
+                }
+                
+                return nullptr;
+            }
+
+            template<typename T>
             T* getComponent(const uint32_t& entity, const std::string& comp){
                 std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
                 auto it = e_clist.find(comp);

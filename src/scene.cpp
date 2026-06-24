@@ -695,6 +695,7 @@ void SceneManager::initRegistry() {
     registerComponentType<PhysicsBody>("PhysicsBody");
     registerComponentType<AnimationPlayer>("AnimationPlayer");
     registerComponentType<AudioPlayer>("AudioPlayer");
+    registerComponentType<CompTransformAnimator>("CompTransformAnimator");
     registerComponentType<SpriteRenderer>("SpriteRenderer");
     registerComponentType<TextRenderer>("TextRenderer");
     registerComponentType<TextBoxRenderer>("TextBoxRenderer");

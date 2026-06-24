@@ -119,6 +119,7 @@ namespace piko {
             std::string getLabel() const { return label; }
             
             void enableHoverEffect(bool enabled) { hoverEffect = enabled; }
+            void enableColorControl(bool enabled) { colorControl = enabled;}
             void setHoverScaleEffect(float scale) { hoverScale = scale; }
 
             void setBGColor(Color4 color) { bgColor = color; }
@@ -146,6 +147,7 @@ namespace piko {
         private:
             std::string label = "";
             bool hoverEffect = true;
+            bool colorControl = true;
             
             // Scale Interpolation Fields
             float hoverScale = 1.05f;      // Targets a 5% increase by default

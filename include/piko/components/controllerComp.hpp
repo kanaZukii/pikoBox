@@ -41,6 +41,7 @@ namespace piko {
                 if(currentClip) {return currentClip->name;}
                 return "";
             }
+            bool getIsPlaying() const {return isPlaying;}
 
          protected:
             AnimationPlayer() : Component() {className = "AnimationPlayer";}
@@ -95,5 +96,60 @@ namespace piko {
             const AudioClip* activeClip = nullptr;
             std::string currentTrackName = "";
             float volumeMod = 1.0f;
+    };
+
+    class CompTransformAnimator : public Component{
+        public: 
+            struct TransformFrame{
+                Rect target = {0.0f, 0.0f, 0.0f, 0.0f};
+                float duration = 0.2f;
+            };
+
+            struct TransformClip{
+                std::string name = "";
+                std::vector<TransformFrame> keyframes;
+                bool loop = true;
+            };
+
+            void init() override {}
+
+            void update(float dt) override;
+
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+
+            void setTargetComponent(uint32_t c);
+            void setTargetComponent(Component* c);
+
+            void addClip(const TransformClip& clip);
+            void play(const std::string& name);
+            void stop();
+            void pause();
+            void resume();
+
+            inline std::string getCurrentClipName() const {
+                if(currentClip) {return currentClip->name;}
+                return "";
+            }
+            bool getIsPlaying() const {return isPlaying;}
+
+        protected:
+            CompTransformAnimator() : Component() {className = "CompTransformAnimator";}   
+
+            friend class Scene;
+            friend class SceneManager;
+        private:
+            std::unordered_map<std::string, TransformClip> clips;
+
+            const TransformClip* currentClip = nullptr;
+            int currentFrameIndex = 0;
+            float frameTimer = 0.0f;
+            bool isPlaying = false;
+
+            uint32_t targetID = 0;
+            Component* targetC = nullptr;
+
+            std::string serializeClip(const TransformClip& clip);
+            TransformClip deserializeClip(const std::string& clipName, const std::string& rawJson);
     };
 }
