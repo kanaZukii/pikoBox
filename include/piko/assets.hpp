@@ -44,6 +44,11 @@ namespace piko {
             const SpriteSheet* getSpriteSheet(std::string key);
             const Sprite* getSpriteFromSheet(std::string sheet, uint16_t index);
 
+            const std::vector<std::string> getTextureNames() const;
+            const std::vector<std::string> getSpriteSheetNames() const;
+            const std::vector<std::string> getAudioNames() const;
+            const std::vector<std::string> getFontNames() const;
+
             bool saveAssetsRefToFile(std::string path);
             bool loadAssetsFromRefFile(std::string path);
 

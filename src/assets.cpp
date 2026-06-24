@@ -546,3 +546,35 @@ bool AssetManager::loadAssetsFromRefFile(std::string path) {
         return false;
     }
 }
+
+const std::vector<std::string> AssetManager::getTextureNames() const{
+    std::vector<std::string> names;
+    for(auto& [key, val] : textures){
+        names.push_back(key);
+    }
+    return names;
+}
+
+const std::vector<std::string> AssetManager::getSpriteSheetNames() const{
+    std::vector<std::string> names;
+    for(auto& [key, val] : spriteSheets){
+        names.push_back(key);
+    }
+    return names;
+}
+
+const std::vector<std::string> AssetManager::getAudioNames() const{
+    std::vector<std::string> names;
+    for(auto& [key, val] : audios){
+        names.push_back(key);
+    }
+    return names;
+}
+
+const std::vector<std::string> AssetManager::getFontNames() const{
+    std::vector<std::string> names;
+    for(auto& [key, val] : fonts){
+        names.push_back(key);
+    }
+    return names;  
+}
