@@ -7,6 +7,7 @@
 #include "piko/components/collidableComp.hpp"
 #include "piko/components/scriptComp.hpp"
 #include "piko/components/controllerComp.hpp"
+#include "piko/logger.hpp"
 
 #include <cstdint>
 #include <string>
@@ -98,6 +99,7 @@ namespace piko {
                     Component* base = components[it->second].get();
                     return dynamic_cast<T*>(base);
                 }
+                PBOX_ERROR("SCENE [%s]: Component '%d' not found.", name.c_str(), id);
                 return nullptr;
             }
 
@@ -116,7 +118,7 @@ namespace piko {
                         return nullptr;
                     }
                 }
-                
+                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
                 return nullptr;
             }
 
@@ -135,7 +137,7 @@ namespace piko {
                         return nullptr;
                     }
                 }
-                
+                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
                 return nullptr;
             }
            

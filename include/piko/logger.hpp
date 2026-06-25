@@ -3,6 +3,8 @@
 #include <iostream>
 #include <string>
 #include <cstdarg>
+#include <cstdint>
+#include <cinttypes>
 #include <vector>
 
 namespace piko {
