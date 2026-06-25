@@ -108,7 +108,7 @@ namespace piko {
             struct TransformClip{
                 std::string name = "";
                 std::vector<TransformFrame> keyframes;
-                bool loop = true;
+                bool loop = false;
             };
 
             void init() override {}
@@ -151,5 +151,60 @@ namespace piko {
 
             std::string serializeClip(const TransformClip& clip);
             TransformClip deserializeClip(const std::string& clipName, const std::string& rawJson);
+    };
+
+    class DrawColorAnimator : public Component{
+        public: 
+            struct ColorFrame{
+                Color4 target = {0, 0, 0, 0};
+                float duration = 0.2f;
+            };
+
+            struct ColorClip{
+                std::string name = "";
+                std::vector<ColorFrame> keyframes;
+                bool loop = false;
+            };
+
+            void init() override {}
+
+            void update(float dt) override;
+
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+
+            void setTargetDrawable(uint32_t d);
+            void setTargetDrawable(Drawable* d);
+
+            void addClip(const ColorClip& clip);
+            void play(const std::string& name);
+            void stop();
+            void pause();
+            void resume();
+
+            inline std::string getCurrentClipName() const {
+                if(currentClip) {return currentClip->name;}
+                return "";
+            }
+            bool getIsPlaying() const {return isPlaying;}
+
+        protected:
+            DrawColorAnimator() : Component() {className = "DrawColorAnimator";}   
+
+            friend class Scene;
+            friend class SceneManager;
+        private:
+            std::unordered_map<std::string, ColorClip> clips;
+
+            const ColorClip* currentClip = nullptr;
+            int currentFrameIndex = 0;
+            float frameTimer = 0.0f;
+            bool isPlaying = false;
+
+            uint32_t targetID = 0;
+            Drawable* targetD = nullptr;
+
+            std::string serializeClip(const ColorClip& clip);
+            ColorClip deserializeClip(const std::string& clipName, const std::string& rawJson);
     };
 }
