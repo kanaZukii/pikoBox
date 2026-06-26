@@ -16,8 +16,6 @@ namespace piko {
         AudioManager(const AudioManager&) = delete;
         AudioManager& operator=(const AudioManager&) = delete;
 
-        void init();
-        void terminate();
         void update(); // Must tick every frame to refill streaming buffers
 
         // The Abstract mixing board API
@@ -30,6 +28,9 @@ namespace piko {
 
     private:
         AudioManager(){}
+        void init();
+        void terminate();
+
         // Holds tracking info for a channel currently streaming data from disk
         struct ActiveStream {
             Music* streamRef = nullptr;

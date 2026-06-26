@@ -49,7 +49,8 @@ namespace piko {
                 std::function<void()> execute;
             };
 
-            virtual ~Scene() = default;
+            ~Scene() = default;
+
             const std::string& getName() const {return name;}
             void setInitCamPosition(Vect2 pos){initCamPos = pos;}
             void setInitCamZoom(float zoom){initCamZoom = zoom;}
@@ -241,6 +242,7 @@ namespace piko {
             void init();
             void update(float dt);
             void draw(Renderer& renderer);
+            void terminate();
         
             void flushPostLoadJobs();
             void processDeferredCommands(); 
@@ -319,7 +321,6 @@ namespace piko {
             void updateScene(DeltaTime dt);
             void drawScene(Renderer& renderer);
             void flushSceneDeferredCmds();
-            void terminate(){};
 
             bool saveSceneToFile(std::string path, std::string key=""); 
             bool loadSceneFromFile(std::string path);
@@ -337,7 +338,11 @@ namespace piko {
             bool isPaused() const { return isGamePaused; }
 
         private:
-            SceneManager(); 
+            SceneManager(){}
+
+            void init();
+            void terminate();
+
             void initRegistry();
 
             void setEventBroker(EventBroker* broker);

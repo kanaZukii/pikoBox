@@ -68,7 +68,7 @@ namespace piko {
             // Mandatory Lifecycle overrides matching your engine's design
             void init() override {}
             void update(float dt) override {} // Stays silent; backend AudioManager does the heavy ticking
-            void terminate() override { Component::terminate(); stop(); }
+            void terminate() override { stop(); Component::terminate(); }
 
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;

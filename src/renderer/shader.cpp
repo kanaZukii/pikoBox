@@ -14,6 +14,9 @@ RenderShader::RenderShader(const std::string& vertexCode, const std::string& fra
     *program = LoadShaderFromMemory(vertexCode.c_str(), fragCode.c_str());
 
     if (program->id == 0) {
+        UnloadShader(*program);
+        delete program;
+        program = nullptr;
         throw std::runtime_error("SHADER: Failed to compile GLSL shader program from memory strings.");
     }
 
@@ -33,11 +36,14 @@ bool RenderShader::operator==(const RenderShader& other) const {
 }
 
 RenderShader::~RenderShader(){
-    if(program->id > 0){
-        UnloadShader(*program);
-    }
+    if(program){
+        if(program->id > 0){
+            UnloadShader(*program);
+        }
 
-    delete program;
+        delete program;
+        program = nullptr;
+    }
 }
 
 RenderShader::RenderShader(RenderShader&& other) noexcept {

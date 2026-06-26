@@ -6,7 +6,7 @@
 
 using namespace piko;
 
-InputManager::InputManager(){
+void InputManager::init(){
     PBOX_INFO("INPUT_MAN: Input Manager Initialized.");
 }
 

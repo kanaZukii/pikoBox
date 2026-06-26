@@ -32,7 +32,6 @@ namespace piko {
             PhysicsEngine(const PhysicsEngine&) = delete;
             PhysicsEngine& operator=(const PhysicsEngine&) = delete;
 
-            void init();
             void update(float dt, Scene* scene, const Rect& viewBubble);
 
             void setGravity(float g) { gravity = g; }
@@ -44,7 +43,10 @@ namespace piko {
             void setCushionSize(float cushion) { cushionSize = cushion; }
 
         private:
-            PhysicsEngine() {}
+            PhysicsEngine(){}
+            void init();
+            void terminate(){}
+
             friend class Engine;
 
             float gravity = 600.0f;

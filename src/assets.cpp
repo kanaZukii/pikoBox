@@ -20,11 +20,11 @@ std::string AssetManager::ReadFileToString(const std::string& path) {
     return buffer.str();
 }
 
-AssetManager::AssetManager(){
+void AssetManager::init(){
     PBOX_INFO("ASSET_MAN: Asset Manager Initialized.");
 }
 
-AssetManager::~AssetManager() {
+void AssetManager::terminate(){
     PBOX_INFO("ASSET_MAN: Cleaning up resources....");
     spriteSheets.clear();
     textures.clear();

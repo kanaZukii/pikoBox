@@ -272,11 +272,8 @@ void RenderBatch::flush(RenderShader* shader, Cam* camera) {
     texCount = 1;
 }
 
-void Renderer::init(RenderShader* defaultShader, Cam* defaultCam){
+void Renderer::init(){
     batches.reserve(64);
-
-    activeCam = defaultCam;
-    activeShader = defaultShader;
 
     PBOX_INFO("RENDERER: Renderer Initialized.");
 }

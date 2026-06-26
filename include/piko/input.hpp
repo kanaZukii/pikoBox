@@ -136,7 +136,9 @@ namespace piko {
             float getMouseDeltaY() const { return mouse.deltaY; }
 
         private:
-            InputManager();
+            InputManager(){}
+            void init();
+            void terminate(){}
             // Action -> List of Combos -> List of Keys in that combo
             std::unordered_map<std::string, std::vector<std::vector<int>>> keyboardBindings;
             std::unordered_map<std::string, std::vector<std::vector<int>>> mouseBindings;

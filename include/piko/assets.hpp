@@ -14,7 +14,7 @@
 namespace piko {
     class AssetManager{
         public:
-            ~AssetManager();
+            ~AssetManager() = default;
             AssetManager(const AssetManager&) = delete;
             AssetManager& operator=(const AssetManager&) = delete;
 
@@ -53,7 +53,10 @@ namespace piko {
             bool loadAssetsFromRefFile(std::string path);
 
         private:
-            AssetManager();
+            AssetManager(){}
+            void init();
+            void terminate();
+
             std::string serialize();
             void deserialize(const std::string& rawJson);
 

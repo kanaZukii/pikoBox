@@ -24,6 +24,21 @@ void Scene::init(){
     PBOX_INFO("SCENE [%s]: Initialized all scene entities and components.", name.c_str());
 }
 
+void Scene::terminate(){
+    unsubscribeListeners();
+
+    deferredCommandBuffer.clear();
+    postLoadJobs.clear();
+
+    for (auto& comp : components) {
+        if (comp) {
+            comp->terminate();
+        }
+    }
+    
+    PBOX_INFO("SCENE [%s]: Structural cleanup complete.", name.c_str());
+}
+
 void Scene::update(float dt) {
     for(Script* s: scripts){
         if(s) { 
@@ -681,7 +696,16 @@ void Scene::clearDeadComps() {
     scripts.resize(writeScptIdx);
 }
 
-SceneManager::SceneManager(){
+void SceneManager::terminate(){
+    for (auto& [key, scenePtr] : scenes) {
+        scenePtr->terminate();
+    }
+
+    scenes.clear();
+    registry.clear();
+}
+
+void SceneManager::init(){
     initRegistry();
     PBOX_INFO("SCENE_MAN: Scene Manager Initialized.");
     PBOX_INFO("SCENE_MAN: Registered all built-in component types.");

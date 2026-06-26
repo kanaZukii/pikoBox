@@ -10,6 +10,7 @@
 #include "piko/cam.hpp"
 #include "piko/event.hpp"
 #include "piko/logger.hpp"
+#include <memory>
 
 struct RenderTexture;
 typedef RenderTexture RenderTexture2D;
@@ -50,22 +51,22 @@ namespace piko {
             int getDrawCanvasW();
             int getDrawCanvasH();
 
-            AssetManager& assets() { return *assetMAN; }
-            SceneManager& scenes() { return *sceneMAN; }
-            Renderer& renderer() { return *renderMAN; }
-            PhysicsEngine& physics() { return *physicsMAN; }
-            InputManager& input() { return *inputMAN; }
-            AudioManager& audio() { return *audioMAN; }
+            AssetManager& assets() { return *assetMAN.get(); }
+            SceneManager& scenes() { return *sceneMAN.get(); }
+            Renderer& renderer() { return *renderMAN.get(); }
+            PhysicsEngine& physics() { return *physicsMAN.get(); }
+            InputManager& input() { return *inputMAN.get(); }
+            AudioManager& audio() { return *audioMAN.get(); }
             Cam& camera()   {return activeCam;}
 
         private:
-            SceneManager* sceneMAN = nullptr;
-            AssetManager* assetMAN = nullptr;
-            InputManager* inputMAN = nullptr;
-            AudioManager* audioMAN = nullptr;
-            Renderer* renderMAN = nullptr;
-            PhysicsEngine* physicsMAN = nullptr;
-
+            std::unique_ptr<AssetManager> assetMAN;
+            std::unique_ptr<AudioManager> audioMAN;
+            std::unique_ptr<InputManager> inputMAN;
+            std::unique_ptr<PhysicsEngine> physicsMAN;
+            std::unique_ptr<Renderer> renderMAN;
+            std::unique_ptr<SceneManager> sceneMAN;
+            
             bool exitWindow = false;
 
             RenderTexture2D* drawCanvas = nullptr;

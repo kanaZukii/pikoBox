@@ -8,23 +8,18 @@
 
 using namespace piko;
 
-Engine::Engine() {
+Engine::Engine(){
     PBOX_INFO("PIKOBOX INITIALIZING........");
-    assetMAN = new AssetManager();
-    renderMAN = new Renderer();
-    audioMAN = new AudioManager();
-    physicsMAN = new PhysicsEngine();
-    inputMAN = new InputManager();
-    sceneMAN = new SceneManager();
-
-    sceneMAN->setEventBroker(&eventBroker);
-    sceneMAN->setAssetsManager(assetMAN);
-    sceneMAN->setInputManager(inputMAN);
-    sceneMAN->setAudioManager(audioMAN);
-    sceneMAN->setGameCamera(&activeCam);
+    assetMAN = std::unique_ptr<AssetManager>(new AssetManager());
+    audioMAN = std::unique_ptr<AudioManager>(new AudioManager());
+    renderMAN = std::unique_ptr<Renderer>(new Renderer());
+    sceneMAN = std::unique_ptr<SceneManager>(new SceneManager());
+    physicsMAN = std::unique_ptr<PhysicsEngine>(new PhysicsEngine());
+    inputMAN = std::unique_ptr<InputManager>(new InputManager());
 }
 
 void Engine::init(const char *title, int width, int height, bool fullscreen, bool resizeable, int targetFPS) {
+    
     PBOX_INFO("WINDOW INITIALIZING........");
     PBOX_INFO("TITLE: %s", title);
     PBOX_INFO("DIMENSION: %dpx x %dpx", width, height);
@@ -51,6 +46,10 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     SetTargetFPS(targetFPS);
     Global::GetVar().fullscreen = IsWindowFullscreen();
 
+    audioMAN->init();
+    assetMAN->init();
+    inputMAN->init();
+
     drawCanvas = new RenderTexture2D;
     
     PBOX_INFO("LOADING RENDER TEXTURE......");
@@ -63,9 +62,18 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     
     PBOX_INFO("SETTING SHADER TO 'default'.");
     activeShader = assetMAN->addShaderFromMemory("default", DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER);
-
-    renderMAN->init(activeShader, &activeCam);
-    audioMAN->init();
+    
+    renderMAN->init();
+    renderMAN->setCamera(&activeCam);
+    renderMAN->setShader(assetMAN->getShader("default"));
+    
+    sceneMAN->init();
+    sceneMAN->setEventBroker(&eventBroker);
+    sceneMAN->setAssetsManager(assetMAN.get());
+    sceneMAN->setInputManager(inputMAN.get());
+    sceneMAN->setAudioManager(audioMAN.get());
+    sceneMAN->setGameCamera(&activeCam);
+    physicsMAN->init();
 
     PBOX_INFO("PIKOBOX ENGINE SUCCESSFULLY INITIALIZED!");
 }
@@ -74,18 +82,17 @@ void Engine::terminate() {
     PBOX_INFO("CLEANING UP.......");
 
     audioMAN->terminate();
+    physicsMAN->terminate();
+    inputMAN->terminate();
+    sceneMAN->terminate();
+    renderMAN->terminate();
+    assetMAN->terminate();
 
-    delete sceneMAN;
-    delete renderMAN;
-    delete assetMAN;
-    delete inputMAN;
-    delete physicsMAN;
-    delete audioMAN;
-
-    if (drawCanvas->id != 0) { UnloadRenderTexture(*drawCanvas);}
-
-    delete drawCanvas;
-
+    if(drawCanvas){
+        if (drawCanvas->id != 0) { UnloadRenderTexture(*drawCanvas);}
+        delete drawCanvas;
+    }
+   
     CloseWindow();
     PBOX_INFO("CLOSED THE WINDOW SUCCESSFULLY");
 }
@@ -133,7 +140,7 @@ void Engine::drawScene(){
     activeCam.begin();
     BeginBlendMode(BLEND_ALPHA);
 
-    sceneMAN->drawScene(*renderMAN);
+    sceneMAN->drawScene(*renderMAN.get());
     renderMAN->flush();
 
     activeCam.end();

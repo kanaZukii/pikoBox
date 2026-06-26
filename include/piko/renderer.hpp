@@ -100,8 +100,6 @@ namespace piko {
         ~Renderer() = default;
         Renderer(const Renderer&) = delete;
         Renderer& operator=(const Renderer&) = delete;
-
-        void init(RenderShader* defaultShader, Cam* defaultCam);
         
         void draw(
                 const TextureIMG* tex,
@@ -132,11 +130,14 @@ namespace piko {
         
         void flush();
 
-        void setCamera(Cam* cam) { activeCam = cam; }
+        void setCamera(Cam* camera) { activeCam = camera; }
         void setShader(RenderShader* shader) { activeShader = shader; }
 
     private:
         Renderer(){}
+        void init();
+        void terminate(){}
+
         static constexpr int MAX_RQUAD = 50000;
         int rQuadCount = 0;
         RenderQuad rQuadQueue[MAX_RQUAD];
