@@ -214,7 +214,7 @@ void ButtonScript::onEarlyUpdate(float dt) {
     }
 
     // 3. Smooth Frame Interpolation (Lerp Math)
-    if(!bgrenderer && hoverEffect) return;
+    if(!bgrenderer && !hoverEffect) return;
     if (std::abs(currentScale - targetScale) > 0.001f) {
         currentScale += (targetScale - currentScale) * scaleSpeed * dt;
         

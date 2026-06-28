@@ -428,46 +428,70 @@ void UIPanel::removeChildEntity(uint32_t childId) {
     }
 }
 
+void UIPanel::popChildEntity(){
+     if (!childrenIds.empty()) {
+        childrenIds.pop_back();
+        isLayoutDirty = true;
+    }
+}
+
 void UIPanel::recalculateLayout() {
-    if (!isLayoutDirty || layoutMode == LAYOUT::FREE || !owner) return;
+    if (!isLayoutDirty || layoutMode == LAYOUT::FREE || !owner || childrenIds.empty()) return;
 
-    // Fetch master panel boundary footprint
-    const Rect& panelBounds = getGlobalTransform();
+    const Rect& panel = getGlobalTransform();
+    
+    // Step 1: Calculate total size required by children
+    float totalChildrenSize = 0.0f;
+    for (uint32_t id : childrenIds) {
+        Entity* child = owner->scene->getEntity(id);
+        if (!child) continue;
+        totalChildrenSize += (layoutMode == LAYOUT::VERTICAL) ? child->transform.h : child->transform.w;
+    }
+    totalChildrenSize += (childrenIds.size() - 1) * childSpacing;
 
-    // Setup cursors starting inside the padding margins
-    float currentX = padding.x;
-    float currentY = padding.y;
+    // Step 2: Determine starting cursor
+    // If you want center, we take the leftover space and divide by 2
+    float startOffset = 0.0f;
+    if(centerContent){
+        startOffset = (layoutMode == LAYOUT::VERTICAL) 
+                        ? (panel.h - totalChildrenSize) / 2.0f 
+                        : (panel.w - totalChildrenSize) / 2.0f;
+    }
+    
+    // Clamp to ensure it doesn't go before padding
+    float currentX = (layoutMode == LAYOUT::HORIZONTAL) ? (padding.x + std::max(0.0f, startOffset)) : padding.x;
+    float currentY = (layoutMode == LAYOUT::VERTICAL)   ? (padding.y + std::max(0.0f, startOffset)) : padding.y;
 
-    for (uint32_t childId : childrenIds) {
-        // Query the flat scene layout database
-        Entity* childEnt = owner->scene->getEntity(childId);
-        if (!childEnt) continue;
+    // Step 3: Place children
+    for (uint32_t id : childrenIds) {
+        Entity* child = owner->scene->getEntity(id);
+        if (!child) continue;
+
+        child->transform.x = panel.x + currentX;
+        child->transform.y = panel.y + currentY;
 
         if (layoutMode == LAYOUT::VERTICAL) {
-            // Anchor child X to panel left margin, stack Y downward
-            childEnt->transform.x = panelBounds.x + padding.x;
-            childEnt->transform.y = panelBounds.y + currentY;
-
-            // Advance the cursor downward by child height + the layout spacing gap
-            currentY += childEnt->transform.h + childSpacing;
-
-        } else if (layoutMode == LAYOUT::HORIZONTAL) {
-            // Stack buttons left-to-right across a row
-            childEnt->transform.x = panelBounds.x + currentX;
-            childEnt->transform.y = panelBounds.y + padding.y;
-
-            // Advance cursor rightward
-            currentX += childEnt->transform.w + childSpacing;
+            currentY += child->transform.h + childSpacing;
+            // Optional: Center horizontally within the panel if Vertical
+            child->transform.x = panel.x + (panel.w - child->transform.w) / 2.0f;
+        } else {
+            currentX += child->transform.w + childSpacing;
+            // Optional: Center vertically within the panel if Horizontal
+            child->transform.y = panel.y + (panel.h - child->transform.h) / 2.0f;
         }
-
-        // Flag all components on the child entity as dirty!
-        childEnt->setDirtyTransform();
+        child->setDirtyTransform();
     }
-
     isLayoutDirty = false;
 }
 
 void UIPanel::update(float dt) {
+
+    for(const uint32_t& id : childrenIds){
+        if(!owner->scene->entityExist(id)){
+            removeChildEntity(id);
+        }
+    }
+
     if (isLayoutDirty) {
         recalculateLayout();
     }
@@ -508,6 +532,7 @@ std::string UIPanel::serialize() {
     data["padding"] = {{"x", padding.x}, {"y", padding.y}};
     data["origin"] = {{"x", origin.x}, {"y", origin.y}};
     data["rotation"] = rotation;
+    data["centerContent"] = centerContent;
     data["childrenIds"] = serializedChild;
 
     return data.dump();
@@ -520,6 +545,7 @@ void UIPanel::deserialize(const std::string& rawJson) {
     layoutMode = static_cast<LAYOUT>(data.value("layoutMode", 0));
     childSpacing = data.value("childSpacing", 0.0f);
     rotation = data.value("rotation", 0.0f);
+    centerContent = data.value("centerContent", false);
 
     if (data.contains("padding") && data["padding"].is_object()) {
         auto& pJson = data["padding"];

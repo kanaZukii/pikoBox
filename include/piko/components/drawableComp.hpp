@@ -94,6 +94,8 @@ namespace piko {
             void setTypewriterActive(bool enabled) {isTypewriterActive = enabled;}
             void setTypeSpeed(float speed) {typeSpeed = speed;}
 
+            bool isAllTextShown() {return visibleCharacterCount >= text.length();}
+
         protected:
             TextBoxRenderer() : TextRenderer() { className = "TextBoxRenderer"; }
 
@@ -130,10 +132,12 @@ namespace piko {
 
             void addChildEntity(uint32_t childId);
             void removeChildEntity(uint32_t childId);
+            void popChildEntity();
 
             void setLayoutMode(LAYOUT mode) { layoutMode = mode; isLayoutDirty = true; }
             void setChildSpacing(float spacing) { childSpacing = spacing; isLayoutDirty = true; }
             void setPadding(Vect2 pad) { padding = pad; isLayoutDirty = true; }
+            void setCenterContent(bool centered){centerContent = centered;}
 
         protected:
             UIPanel() : Drawable() {
@@ -146,6 +150,7 @@ namespace piko {
 
         private:
             LAYOUT layoutMode = LAYOUT::FREE;
+            bool centerContent = false;
             float childSpacing = 0.0f;
             Vect2 padding = {0.0f, 0.0f};
             Vect2 origin = {0.0f, 0.0f};
