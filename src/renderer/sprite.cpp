@@ -89,6 +89,13 @@ bool TextureIMG::operator==(const TextureIMG& other) const {
         );
 }
 
+unsigned int TextureIMG::getOpenGLID() const {
+    if(data){
+        return data->id;
+    }
+    return 0;
+}
+
 
 SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& texName) : sources(sources) {
     texAtlas = tex;

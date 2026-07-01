@@ -33,6 +33,8 @@ namespace piko {
 
             inline const std::string& getFilePath() const noexcept {return path;}
             inline const Texture2D& getData() const noexcept {return *data;}
+            unsigned int getOpenGLID() const;
+
 
         private:
             Texture2D* data = nullptr;
