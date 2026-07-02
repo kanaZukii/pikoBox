@@ -67,22 +67,21 @@ namespace piko {
         public:
             // Mandatory Lifecycle overrides matching your engine's design
             void init() override {}
-            void update(float dt) override {} // Stays silent; backend AudioManager does the heavy ticking
+            void update(float dt) override {} 
             void terminate() override { stop(); Component::terminate(); }
 
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
-
-            // Configuration API
-            void addTrack(const std::string& trackName, const AudioClip* clip);
             
             // Execution API
-            void play(const std::string& trackName, bool loop = false);
+            void play(const std::string& audio, bool loop = false, int channel=0, float startAt=0.0f);
+            void play(const AudioClip* audio, bool loop = false, int channel=0, float startAt=0.0f);
             void stop();
             void setVolumeModifier(float volume);
 
-            inline const std::string& getCurrentTrackName() const noexcept { return currentTrackName; }
+            inline const AudioClip* getCurrentClip() const noexcept { return currentClip; }
             inline float getVolumeModifier() const noexcept { return volumeMod; }
+            bool isPlaying() const;
 
         protected:
             // Protected constructor enforces Scene allocation rules
@@ -92,9 +91,8 @@ namespace piko {
             friend class SceneManager;
 
         private:
-            std::unordered_map<std::string, const AudioClip*> tracks;
-            const AudioClip* activeClip = nullptr;
-            std::string currentTrackName = "";
+            const AudioClip* currentClip = nullptr;
+            int currentChannel = 0;
             float volumeMod = 1.0f;
     };
 

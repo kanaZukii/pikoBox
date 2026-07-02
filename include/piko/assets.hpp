@@ -24,7 +24,7 @@ namespace piko {
             RenderShader* addShaderFromMemory(std::string key, std::string verPath, std::string fragPath);
             RenderShader* getShader(std::string key);
 
-            const AudioClip* addAudioClip(std::string key, std::string path, AudioClip::AudioType type, int targetChannel=0);
+            const AudioClip* addAudioClip(std::string key, std::string path, AudioClip::AudioType type);
             const AudioClip* getAudioClip(std::string key);
             const AudioClip* getAudioClipByPath(std::string path);
 
@@ -48,6 +48,8 @@ namespace piko {
             const std::vector<std::string> getSpriteSheetNames() const;
             const std::vector<std::string> getAudioNames() const;
             const std::vector<std::string> getFontNames() const;
+            const std::vector<std::string> getSfxNames() const;
+            const std::vector<std::string> getMusicNames() const;
 
             bool saveAssetsRefToFile(std::string path);
             bool loadAssetsFromRefFile(std::string path);
@@ -69,6 +71,9 @@ namespace piko {
 
             std::unordered_map<std::string, AudioClip> audios;
             std::unordered_map<std::string, std::string> audioPathToKey;
+            
+            std::vector<std::string> sfx;
+            std::vector<std::string> music;
             
             std::unordered_map<std::string, SpriteSheet> spriteSheets;
             std::unordered_map<std::string, RenderShader> shaders;

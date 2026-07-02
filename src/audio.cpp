@@ -11,8 +11,8 @@
 
 using namespace piko;
 
-AudioClip::AudioClip(const std::string& filepath, AudioType type, int targetChannel)
-    : path(filepath), type(type), defaultChannel(targetChannel) {
+AudioClip::AudioClip(const std::string& filepath, AudioType type)
+    : path(filepath), type(type) {
 
     if (!std::filesystem::exists(filepath)) {
         throw std::runtime_error("AUDIOCLIP: File does not exist: " + filepath);
@@ -54,8 +54,7 @@ AudioClip::AudioClip(AudioClip&& other) noexcept
     : staticData(other.staticData),
         streamData(other.streamData),
         path(std::move(other.path)),
-        type(other.type),
-        defaultChannel(other.defaultChannel) {
+        type(other.type) {
     
     // Nullify the temporary source object so its destructor doesn't clear the hardware buffer
     other.staticData = nullptr;
@@ -80,7 +79,6 @@ AudioClip& AudioClip::operator=(AudioClip&& other) noexcept {
         streamData = other.streamData;
         path = std::move(other.path);
         type = other.type;
-        defaultChannel = other.defaultChannel;
 
         other.staticData = nullptr;
         other.streamData = nullptr;
@@ -135,10 +133,12 @@ float AudioManager::getChannelVolume(int channelIdx) const {
     return channelVolumes[channelIdx];
 }
 
-void AudioManager::playClip(const AudioClip* clip, bool shouldLoop) {
+// Allow passing an optional channel, defaulting to -1 (no channel tracking)
+void AudioManager::playClip(const AudioClip* clip, bool shouldLoop, int channel, float startAt) {
     if (!clip) return;
 
-    int channel = clip->getDefaultChannel();
+    // Use override if provided (!= -1), otherwise fallback to 0 (default)
+    channel = (channel != -1) ? channel : 0;
     ensureChannelExists(channel);
 
     if (clip->getType() == AudioClip::AudioType::STATIC_SFX) {
@@ -149,13 +149,13 @@ void AudioManager::playClip(const AudioClip* clip, bool shouldLoop) {
         }
     } else if (clip->getType() == AudioClip::AudioType::STREAM_MUSIC) {
         stopChannelStream(channel);
-
         Music* stream = clip->getStreamData();
         if (stream) {
             stream->looping = shouldLoop;
             PlayMusicStream(*stream);
+            if (startAt > 0.0f) SeekMusicStream(*stream, startAt);
             SetMusicVolume(*stream, channelVolumes[channel]);
-            activeStreams[channel] = ActiveStream{ stream, true };
+            activeStreams[channel] = ActiveStream{ stream, true, startAt };
         }
     }
 }
@@ -167,10 +167,26 @@ void AudioManager::stopChannelStream(int channelIdx) {
     }
 }
 
+bool AudioManager::isChannelPlaying(int channelIdx) const {
+    auto it = activeStreams.find(channelIdx);
+    if (it != activeStreams.end() && it->second.isActive) {
+        return IsMusicStreamPlaying(*it->second.streamRef);
+    }
+    return false;
+}
+
 void AudioManager::update() {
     for (auto& [channel, stream] : activeStreams) {
         if (stream.isActive) {
             UpdateMusicStream(*stream.streamRef);
+
+            if (stream.streamRef->looping && IsMusicStreamPlaying(*stream.streamRef) == false) {
+                PlayMusicStream(*stream.streamRef);
+
+                if (stream.loopStart > 0.0f) {
+                    SeekMusicStream(*stream.streamRef, stream.loopStart);
+                }
+            }
         }
     }
 }

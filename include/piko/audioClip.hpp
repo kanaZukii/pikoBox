@@ -13,7 +13,7 @@ namespace piko {
                 STREAM_MUSIC
             };
             
-            AudioClip(const std::string& filepath, AudioType type, int targetChannel);
+            AudioClip(const std::string& filepath, AudioType type);
             ~AudioClip();
 
             AudioClip(const AudioClip&) = delete;
@@ -23,7 +23,6 @@ namespace piko {
             AudioClip& operator=(AudioClip&& other) noexcept;
 
             inline AudioType getType() const noexcept { return type; }
-            inline int getDefaultChannel() const noexcept { return defaultChannel; }
             inline const std::string& getFilePath() const noexcept { return path; }
 
             inline const Sound* getStaticData() const noexcept { return staticData; }
@@ -35,7 +34,6 @@ namespace piko {
 
             std::string path = "";
             AudioType type;
-            int defaultChannel = 0;
     };
 
 }

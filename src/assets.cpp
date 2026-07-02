@@ -113,7 +113,7 @@ const Sprite* AssetManager::getTexSpriteByPath(std::string path){
     return nullptr;
 }
 
-const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, AudioClip::AudioType type, int targetChannel) {
+const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, AudioClip::AudioType type) {
     auto aud_exist = audios.find(key);
     if (aud_exist != audios.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create audio clip '%s'. It already exist.", key.c_str());
@@ -124,10 +124,16 @@ const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, A
         auto [it, success] = audios.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(key),
-            std::forward_as_tuple(path, type, targetChannel)
+            std::forward_as_tuple(path, type)
         );
         
         audioPathToKey[path] = key;
+        if(type == AudioClip::AudioType::STATIC_SFX){
+            sfx.push_back(key);
+        } else {
+            music.push_back(key);
+        }
+
         return &(it->second);
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create audio clip '%s': %s", key.c_str(), e.what());
@@ -356,8 +362,7 @@ std::string AssetManager::serialize() {
     for (const auto& [key, audio] : audios) {
         json audioData = {
             {"path", audio.getFilePath()},
-            {"type", static_cast<int>(audio.getType())}, // Serialize enum to int
-            {"channel", audio.getDefaultChannel()}
+            {"type", static_cast<int>(audio.getType())}
         };
         audioMap[key] = audioData;
     }
@@ -436,10 +441,9 @@ void AssetManager::deserialize(const std::string& rawJson) {
         for (const auto& [key, audioData] : data["audio"].items()) {
             std::string path = audioData.value("path", "");
             int typeInt = audioData.value("type", 0);
-            int channel = audioData.value("channel", 0);
             
             AudioClip::AudioType type = static_cast<AudioClip::AudioType>(typeInt);
-            this->addAudioClip(key, path, type, channel);
+            this->addAudioClip(key, path, type);
         }
         PBOX_INFO("ASSET_MAN: Successfully deserialized audio assets to runtime." );
     }
@@ -578,3 +582,6 @@ const std::vector<std::string> AssetManager::getFontNames() const{
     }
     return names;  
 }
+
+const std::vector<std::string> AssetManager::getSfxNames() const { return sfx; }
+const std::vector<std::string> AssetManager::getMusicNames() const { return music; }

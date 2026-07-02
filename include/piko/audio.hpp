@@ -23,8 +23,10 @@ namespace piko {
         float getChannelVolume(int channelIdx) const;
 
         // Playback API
-        void playClip(const AudioClip* clip, bool shouldLoop = false);
+        void playClip(const AudioClip* clip, bool shouldLoop, int channel, float startAt=0.0f);
         void stopChannelStream(int channelIdx);
+
+        bool isChannelPlaying(int channelIdx) const;
 
     private:
         AudioManager(){}
@@ -35,6 +37,7 @@ namespace piko {
         struct ActiveStream {
             Music* streamRef = nullptr;
             bool isActive = false;
+            float loopStart = 0.0f;
         };
 
         // Storage for abstract volumes. Resizes dynamically based on incoming channel IDs.

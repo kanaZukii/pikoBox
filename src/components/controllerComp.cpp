@@ -233,59 +233,60 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
     }
 }
 
-void AudioPlayer::addTrack(const std::string& trackName, const AudioClip* clip) {
-    if (clip) {
-        tracks[trackName] = clip;
+void AudioPlayer::play(const std::string& audio, bool loop, int channel, float startAt) {
+    const AudioClip* newAudio = owner->scene->getAssets()->getAudioClip(audio);
+    if(!newAudio) return;
+
+    
+    if (newAudio->getType() == AudioClip::AudioType::STREAM_MUSIC && newAudio != currentClip) {
+        currentClip = newAudio;
+        currentChannel = channel;
+        owner->scene->getAudio()->playClip(currentClip, loop, channel);
+    } else if (newAudio->getType() == AudioClip::AudioType::STATIC_SFX) {
+        owner->scene->getAudio()->playClip(newAudio, loop, channel);
     }
 }
 
-void AudioPlayer::play(const std::string& trackName, bool loop) {
-    auto it = tracks.find(trackName);
-    if (it == tracks.end()) return;
+void AudioPlayer::play(const AudioClip* audio, bool loop, int channel, float startAt){
+    if(!audio) return;
 
-    activeClip = it->second;
-    currentTrackName = trackName;
-
-    // Dispatches to your abstract mixing board using the clip's hardcoded channel
-    owner->scene->getAudio()->playClip(activeClip, loop);
+    
+    if (audio->getType() == AudioClip::AudioType::STREAM_MUSIC && audio != currentClip) {
+        currentClip = audio;
+        currentChannel = channel;
+        owner->scene->getAudio()->playClip(currentClip, loop, channel);
+    }else if (audio->getType() == AudioClip::AudioType::STATIC_SFX) {
+        owner->scene->getAudio()->playClip(audio, loop, channel);
+    }
 }
 
 void AudioPlayer::stop() {
-    if (activeClip) {
-        owner->scene->getAudio()->stopChannelStream(activeClip->getDefaultChannel());
-        activeClip = nullptr;
-        currentTrackName = "";
+    if (currentClip) {
+        owner->scene->getAudio()->stopChannelStream(currentChannel);
+        currentClip = nullptr;
     }
 }
 
 void AudioPlayer::setVolumeModifier(float volume) {
     volumeMod = volume;
-    if (activeClip) {
-        owner->scene->getAudio()->setChannelVolume(activeClip->getDefaultChannel(), volume);
+    if (currentClip) {
+        owner->scene->getAudio()->setChannelVolume(currentChannel, volume);
     }
+}
+
+bool AudioPlayer::isPlaying() const {
+    if (!currentClip) return false;
+
+    return owner->scene->getAudio()->isChannelPlaying(currentChannel); 
 }
 
 std::string AudioPlayer::serialize(){
     json data = json::parse(Component::serialize());
     data["volumeMod"] = volumeMod;
+    data["currentChannel"] = currentChannel;
 
-    if(activeClip){
-        data["activeClip"] = activeClip->getFilePath();
-    }
-
-    if(!currentTrackName.empty()){
-        data["currentTrackName"] = currentTrackName;
-    }
-
-    if(!tracks.empty()){
-        json serializedTracks = json::object();
-        for(const auto& [key, val] : tracks){
-            if(val){
-                serializedTracks[key] = val->getFilePath();
-            }
-        }
-
-        data["tracks"] = serializedTracks;
+    if(currentClip){
+        data["currentClip"] = currentClip->getFilePath();
     }
 
     return data.dump();
@@ -296,28 +297,12 @@ void AudioPlayer::deserialize(const std::string& rawJson) {
     json data = json::parse(rawJson);
     
     volumeMod = data.value("volumeMod", 1.0f);
-    currentTrackName = data.value("currentTrackName", "");
+    currentChannel = data.value("currentChannel", 0);
 
-    activeClip = nullptr;
-    if(data.contains("activeClip")){
-        std::string audioPath = data.value("activeClip", "");
-        activeClip = owner->scene->getAssets()->getAudioClipByPath(audioPath);
-    }
-
-    if (data.contains("tracks") && data["tracks"].is_object()) {
-        this->tracks.clear();
-        auto& serializedTracks = data["tracks"];
-        
-        for (const auto& [trackName, filePathJson] : serializedTracks.items()) {
-            if (filePathJson.is_string()) {
-                std::string pathStr = filePathJson.get<std::string>();
-                const AudioClip* clip = owner->scene->getAssets()->getAudioClipByPath(pathStr);
-
-                if (clip) {
-                    this->tracks[trackName] = clip;
-                }
-            }
-        }
+    currentClip = nullptr;
+    if(data.contains("currentClip")){
+        std::string audioPath = data.value("currentClip", "");
+        currentClip = owner->scene->getAssets()->getAudioClipByPath(audioPath);
     }
 }
 
