@@ -42,6 +42,12 @@ const TextureIMG* AssetManager::addTexture(std::string key, std::string path){
         return &(tex_exist->second);
     }
 
+    auto path_exist = texPathToKey.find(path);
+    if (path_exist != texPathToKey.end()) {
+        PBOX_WARN("ASSET_MAN: Texture '%s' is already registered with key '%s'.", path.c_str(), path_exist->second.c_str());
+        return get<TextureIMG>(path_exist->second);
+    }
+
     try {
         // Use emplace to construct directly in the map node. No temporaries, no leaks!
         auto [it, success] = textures.emplace(
@@ -63,12 +69,17 @@ const TextureIMG* AssetManager::addTexture(std::string key, std::string path){
     }
 }
 
-
 const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, AudioClip::AudioType type) {
     auto aud_exist = audios.find(key);
     if (aud_exist != audios.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create audio clip '%s'. It already exist.", key.c_str());
         return &(aud_exist->second);
+    }
+
+    auto path_exist = audioPathToKey.find(path);
+    if (path_exist != audioPathToKey.end()) {
+        PBOX_WARN("ASSET_MAN: Audio '%s' is already registered with key '%s'.", path.c_str(), path_exist->second.c_str());
+        return get<AudioClip>(path_exist->second);
     }
 
     try {
@@ -99,6 +110,12 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
         return &(font_exist->second);
     }
 
+    auto path_exist = fontPathToKey.find(path);
+    if (path_exist != fontPathToKey.end()) {
+        PBOX_WARN("ASSET_MAN: Font '%s' is already registered with key '%s'.", path.c_str(), path_exist->second.c_str());
+        return get<FontAtlas>(path_exist->second);
+    }
+
     try {
         // Use emplace to construct directly in the map node. No temporaries, no leaks!
         auto [it, success] = fonts.emplace(
@@ -115,7 +132,7 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
         return &(it->second);
 
     } catch (const std::exception& e) {
-        PBOX_ERROR("ASSET_MAN: Cannot create font atlas '%s': %s", e.what());
+        PBOX_ERROR("ASSET_MAN: Cannot create font atlas '%s': %s", key.c_str(), e.what());
         return nullptr; 
     }
 }
@@ -242,25 +259,6 @@ const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::stri
     }
 }
 
-template<> const TextureIMG* AssetManager::get<TextureIMG>(const std::string& key) {
-    auto tex_exist = textures.find(key);
-    if (tex_exist != textures.end()) {
-        return &(tex_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find texture '%s'", key.c_str());
-    return nullptr;
-}
-
-template<> const TextureIMG* AssetManager::getByPath<TextureIMG>(const std::string& path) {
-    auto key_exist = texPathToKey.find(path);
-    if (key_exist != texPathToKey.end()) {
-        return get<TextureIMG>(key_exist->second);
-    }
-   
-    PBOX_ERROR("ASSET_MAN: Cannot find texture with path: %s", path.c_str());
-    return nullptr;
-}
-
 const Sprite* AssetManager::getTexSprite(std::string key){
     // 1. Ensure the texture exists first
     auto tex_exist = textures.find(key);
@@ -292,64 +290,61 @@ const Sprite* AssetManager::getTexSpriteByPath(std::string path){
     return nullptr;
 }
 
-template<> const FontAtlas* AssetManager::get<FontAtlas>(const std::string& key) {
-    auto font_exist = fonts.find(key);
-    if (font_exist != fonts.end()) {
-        return &(font_exist->second);
-    }
-
-    PBOX_ERROR("ASSET_MAN: Cannot find font atlas '%s'", key.c_str());
-    return nullptr;
-}
-
-template<> const FontAtlas* AssetManager::getByPath<FontAtlas>(const std::string& path) {
-    auto font_exist = fontPathToKey.find(path);
-    if (font_exist != fontPathToKey.end()) {
-        return get<FontAtlas>(font_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find font atlas with path: %s", path.c_str());
-    return nullptr;
-}
-
-template<> const AudioClip* AssetManager::get<AudioClip>(const std::string& key) {
-    auto aud_exist = audios.find(key);
-    if (aud_exist != audios.end()) {
-        return &(aud_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find audio clip '%s'", key.c_str());
-    return nullptr;
-}
-
-template<> const AudioClip* AssetManager::getByPath<AudioClip>(const std::string& path) {
-    auto audio_exist = audioPathToKey.find(path);
-    if (audio_exist != audioPathToKey.end()) {
-        return get<AudioClip>(audio_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find audio with path: %s", path.c_str());
-    return nullptr;
-}
-
-template<> const SpriteSheet* AssetManager::get<SpriteSheet>(const std::string& key) {
-    auto sheet_exist = spriteSheets.find(key);
-    if (sheet_exist != spriteSheets.end()) {
-        return &(sheet_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find spritesheet '%s'", key.c_str());
-    return nullptr;
-}
-
 const Sprite* AssetManager::getSpriteFromSheet(std::string sheet, uint16_t index){
     const SpriteSheet* sprSheet = get<SpriteSheet>(sheet);
     return sprSheet ? sprSheet->getSprite(index) : nullptr;
 }
 
-template<> const RenderShader* AssetManager::get<RenderShader>(const std::string& key) {
-    auto shader_exist = shaders.find(key);
-    if (shader_exist != shaders.end()) {
-        return &(shader_exist->second);
+void AssetManager::flushDeletionQueue() {
+    std::unordered_set<std::string> deletedTexPath;
+
+    for (const auto& a : deletionQueue) {
+        switch (a.type) {
+            case AssetType::Texture: {
+                const auto* texture = get<TextureIMG>(a.key); 
+                if(texture){
+                    deletedTexPath.insert(texture->getFilePath());
+                    texPathToKey.erase(texture->getFilePath());
+                }
+                break;
+            }
+            case AssetType::Font:{
+                const auto* font = get<FontAtlas>(a.key);  
+                if(font){
+                    fontPathToKey.erase(font->getFilePath());
+                }
+                break;
+            }
+            case AssetType::Audio: { 
+                const auto* audio = get<AudioClip>(a.key);     
+                if(audio){
+                    audioPathToKey.erase(audio->getFilePath());
+                }
+                break;
+            }
+        }
     }
-    PBOX_ERROR("ASSET_MAN: Cannot find shader '%s'", key.c_str());
-    return nullptr;
+
+    for (auto it = spriteSheets.begin(); it != spriteSheets.end(); ) {
+        const TextureIMG* tex = it->second.getTexAtlas();
+        if (deletedTexPath.count(tex->getFilePath())) {
+            it = spriteSheets.erase(it); 
+        } else {
+            ++it;
+        }
+    }
+
+    for (const auto& a : deletionQueue) {
+        switch (a.type) {
+            case AssetType::Texture: textures.erase(a.key);break;
+            case AssetType::Font: fonts.erase(a.key); break;
+            case AssetType::Audio: audios.erase(a.key); break;
+            case AssetType::SpriteSheet: spriteSheets.erase(a.key); break;
+            case AssetType::Shader: shaders.erase(a.key); break;
+        }
+    }
+
+    deletionQueue.clear();
 }
 
 std::string AssetManager::serialize() {

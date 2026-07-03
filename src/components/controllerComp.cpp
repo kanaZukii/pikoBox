@@ -115,7 +115,7 @@ std::string AnimationPlayer::serializeClip(const Clip& clip){
         
         if(f.sprite){
             json spriteJson = {
-                {"sheet", f.sprite->texName}
+                {"sheet", f.sprite->sheet}
             };
             if(f.sprite->index > -1) {
                 spriteJson["index"] = f.sprite->index;

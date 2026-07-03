@@ -97,7 +97,7 @@ unsigned int TextureIMG::getOpenGLID() const {
 }
 
 
-SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& texName) : sources(sources) {
+SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& sheet) : sources(sources) {
     texAtlas = tex;
     if (!texAtlas) throw std::runtime_error("Texture Atlas is NULLPTR");
     if (texAtlas->getData().id == 0) throw std::runtime_error("Texture Atlas is MALFORMED");
@@ -117,7 +117,7 @@ SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources
             continue; 
         }
 
-        sprites.push_back({texAtlas, src, texName, index++});
+        sprites.push_back({texAtlas, src, sheet, index++});
     }
 }
 

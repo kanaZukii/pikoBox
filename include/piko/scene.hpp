@@ -57,90 +57,8 @@ namespace piko {
 
             Entity* createEntity(std::string key);
 
-            template <typename T, typename... Args>
-            T* addComponent(const uint32_t& entity, std::string key, Args&&... args) {
-
-                auto comp = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-
-                T* ptr = comp.get();
-
-                std::unique_ptr<Component> baseComp = std::move(comp);
-
-                if(registerComponent(std::move(baseComp), entity, key)){
-                    return ptr;
-                }
-                
-                return nullptr;
-            }
-
-            template <typename T, typename... Args>
-            T* addComponent(const std::string& entity, std::string key, Args&&... args) {
-
-                auto comp = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-
-                T* ptr = comp.get();
-
-                std::unique_ptr<Component> baseComp = std::move(comp);
-
-                if(registerComponent(std::move(baseComp), entity, key)){
-                    return ptr;
-                }
-                
-                return nullptr;
-            }
-
             Entity* getEntity(uint32_t id);
             Entity* getEntity(std::string key);
-
-            template<typename T>
-            T* getComponent(const uint32_t& id){
-                auto it = componentByIDs.find(id);
-
-                if(it != componentByIDs.end()) {
-                    Component* base = components[it->second].get();
-                    return dynamic_cast<T*>(base);
-                }
-                PBOX_ERROR("SCENE [%s]: Component '%d' not found.", name.c_str(), id);
-                return nullptr;
-            }
-
-            template<typename T>
-            T* getComponent(std::string entity, const std::string& comp){
-                std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
-                auto it = e_clist.find(comp);
-
-                if(it != e_clist.end()) {
-                    auto index = componentByIDs.find(it->second);
-
-                    if(index != componentByIDs.end()) {
-                        Component* base = components[index->second].get();
-                        return dynamic_cast<T*>(base);
-                    }else {
-                        return nullptr;
-                    }
-                }
-                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
-                return nullptr;
-            }
-
-            template<typename T>
-            T* getComponent(const uint32_t& entity, const std::string& comp){
-                std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
-                auto it = e_clist.find(comp);
-
-                if(it != e_clist.end()) {
-                    auto index = componentByIDs.find(it->second);
-
-                    if(index != componentByIDs.end()) {
-                        Component* base = components[index->second].get();
-                        return dynamic_cast<T*>(base);
-                    }else {
-                        return nullptr;
-                    }
-                }
-                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
-                return nullptr;
-            }
            
             bool removeEntity(const uint32_t& id);
             bool removeEntity(const std::string& key);
@@ -149,68 +67,12 @@ namespace piko {
             bool removeComponent(const uint32_t& entity, const std::string& comp);
 
             void safeCreateEntity(const std::string& key, std::function<void(Entity*)> initCallback = nullptr);
-
-            template <typename T>
-            void safeAddComponent(uint32_t entityId, const std::string& compKey, 
-                                std::function<void(T*)> initCallback = nullptr) {
-
-                deferredCommandBuffer.push_back({
-                    DeferredCommand::TYPE::ADD_COMPONENT,
-                    [this, entityId, compKey, initCallback]() {
-                        // 1. Instantiated cleanly using the required default constructor
-                        T* ptr = this->addComponent<T>(entityId, compKey);
-                        
-                        // 2. Configure properties immediately on the spot
-                        if (ptr && initCallback) {
-                            initCallback(ptr);
-                        }
-                    }
-                });
-            }
-
-            template <typename T>
-            void safeAddComponent(const std::string& entityKey, const std::string& compKey, 
-                                std::function<void(T*)> initCallback = nullptr) {
-                
-                deferredCommandBuffer.push_back({
-                    DeferredCommand::TYPE::ADD_COMPONENT,
-                    [this, entityKey, compKey, initCallback]() {
-                        T* ptr = this->addComponent<T>(entityKey, compKey);
-                        if (ptr && initCallback) {
-                            initCallback(ptr);
-                        }
-                    }
-                });
-            }
-            
+ 
             void safeRemoveEntity(uint32_t id);
             void safeRemoveEntity(const std::string& key);
 
             void safeRemoveComponent(uint32_t componentId);
             void safeRemoveComponent(uint32_t entityId, const std::string& compKey);
-
-            inline bool entityExist(std::string key) const {
-                return (entityByAlias.find(key) != entityByAlias.end());
-            }
-
-            inline bool entityExist(uint32_t id) const {
-                return (entityByIDs.find(id) != entityByIDs.end());
-            }
-
-            inline bool componentExist(uint32_t id) const {
-                return (componentByIDs.find(id) != componentByIDs.end());
-            }
-
-            template <typename T>
-            void listenToEvent(std::function<void(const T&)> callback) {
-                uint32_t id = eventBroker->subscribe<T>(callback);
-                subscriptionIDs.push_back(id);
-            }
-
-            template <typename T>
-            void publishEvent(const T& event) {
-                eventBroker->publish<T>(event);
-            }
 
             void unsubscribeListeners();
 
@@ -302,6 +164,143 @@ namespace piko {
             AssetManager* assetMAN = nullptr;
             AudioManager* audioMAN = nullptr;
             Cam* sceneCam = nullptr;
+        
+        public:
+
+            template <typename T, typename... Args>
+            inline T* addComponent(const uint32_t& entity, std::string key, Args&&... args) {
+
+                auto comp = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+                T* ptr = comp.get();
+                std::unique_ptr<Component> baseComp = std::move(comp);
+
+                if(registerComponent(std::move(baseComp), entity, key)){
+                    return ptr;
+                }
+                
+                return nullptr;
+            }
+
+            template <typename T, typename... Args>
+            inline T* addComponent(const std::string& entity, std::string key, Args&&... args) {
+
+                auto comp = std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+                T* ptr = comp.get();
+                std::unique_ptr<Component> baseComp = std::move(comp);
+
+                if(registerComponent(std::move(baseComp), entity, key)){
+                    return ptr;
+                }
+                
+                return nullptr;
+            }
+
+            template<typename T>
+            inline T* getComponent(const uint32_t& id){
+                auto it = componentByIDs.find(id);
+
+                if(it != componentByIDs.end()) {
+                    Component* base = components[it->second].get();
+                    return dynamic_cast<T*>(base);
+                }
+                PBOX_ERROR("SCENE [%s]: Component '%d' not found.", name.c_str(), id);
+                return nullptr;
+            }
+
+            template<typename T>
+            inline T* getComponent(std::string entity, const std::string& comp){
+                std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
+                auto it = e_clist.find(comp);
+
+                if(it != e_clist.end()) {
+                    auto index = componentByIDs.find(it->second);
+
+                    if(index != componentByIDs.end()) {
+                        Component* base = components[index->second].get();
+                        return dynamic_cast<T*>(base);
+                    }else {
+                        return nullptr;
+                    }
+                }
+                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
+                return nullptr;
+            }
+
+            template<typename T>
+            inline T* getComponent(const uint32_t& entity, const std::string& comp){
+                std::unordered_map<std::string, uint32_t>& e_clist = getEntity(entity)->components; 
+                auto it = e_clist.find(comp);
+
+                if(it != e_clist.end()) {
+                    auto index = componentByIDs.find(it->second);
+
+                    if(index != componentByIDs.end()) {
+                        Component* base = components[index->second].get();
+                        return dynamic_cast<T*>(base);
+                    }else {
+                        return nullptr;
+                    }
+                }
+                PBOX_ERROR("SCENE [%s]: Component '%s' not found.", name.c_str(), comp.c_str());
+                return nullptr;
+            }
+
+            template <typename T>
+            inline void safeAddComponent(uint32_t entityId, const std::string& compKey, 
+                                std::function<void(T*)> initCallback = nullptr) {
+
+                deferredCommandBuffer.push_back({
+                    DeferredCommand::TYPE::ADD_COMPONENT,
+                    [this, entityId, compKey, initCallback]() {
+                        // 1. Instantiated cleanly using the required default constructor
+                        T* ptr = this->addComponent<T>(entityId, compKey);
+                        
+                        // 2. Configure properties immediately on the spot
+                        if (ptr && initCallback) {
+                            initCallback(ptr);
+                        }
+                    }
+                });
+            }
+
+            template <typename T>
+            inline void safeAddComponent(const std::string& entityKey, const std::string& compKey, 
+                                std::function<void(T*)> initCallback = nullptr) {
+                
+                deferredCommandBuffer.push_back({
+                    DeferredCommand::TYPE::ADD_COMPONENT,
+                    [this, entityKey, compKey, initCallback]() {
+                        T* ptr = this->addComponent<T>(entityKey, compKey);
+                        if (ptr && initCallback) {
+                            initCallback(ptr);
+                        }
+                    }
+                });
+            }
+
+            inline bool entityExist(std::string key) const {
+                return entityByAlias.count(key) > 0;
+            }
+
+            inline bool entityExist(uint32_t id) const {
+                return entityByIDs.count(id) > 0;
+            }
+
+            inline bool componentExist(uint32_t id) const {
+                return componentByIDs.count(id) > 0;
+            }
+
+            template <typename T>
+            inline void listenToEvent(std::function<void(const T&)> callback) {
+                uint32_t id = eventBroker->subscribe<T>(callback);
+                subscriptionIDs.push_back(id);
+            }
+
+            template <typename T>
+            inline void publishEvent(const T& event) {
+                eventBroker->publish<T>(event);
+            }
+            
     };
 
 

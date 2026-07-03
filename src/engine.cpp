@@ -106,6 +106,8 @@ void Engine::update(){
     if (IsKeyPressed(KEY_F11)) setFullScreen(!Global::GetVar().fullscreen);
 
     if (IsKeyPressed(KEY_F2)) TakeScreenshot("screenshot.png");
+
+    assetMAN->flushDeletionQueue();
     
     if (sceneMAN->currentScene) {
         Rect simBounds = activeCam.getViewSpaceBubble();

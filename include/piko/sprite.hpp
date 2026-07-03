@@ -49,14 +49,14 @@ namespace piko {
     struct Sprite{
         const TextureIMG* tex = nullptr;
         Rect source = {0.0f};
-        std::string texName = "";
+        std::string sheet = "";
         int index = -1;
         Vect2 pivot = {0.0f, 0.0f};
     };
 
     class SpriteSheet{
         public:
-            SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& texName="");
+            SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& sheet="");
             const Sprite* getSprite(uint16_t index) const;
 
             inline uint16_t getSize() const noexcept { return static_cast<uint16_t>(sprites.size()); }

@@ -130,7 +130,7 @@ std::string SpriteRenderer::serialize(){
     
     if(sprite){
         json spriteJson = {
-            {"texName", sprite->texName}
+            {"sheet", sprite->sheet}
         };
         
         if(sprite->index > -1){
@@ -159,13 +159,13 @@ void SpriteRenderer::deserialize(const std::string& rawJson){
     sprite = nullptr;
     if (data.contains("sprite") && data["sprite"].is_object()) {
         auto& spriteJson = data["sprite"];
-        std::string tex = spriteJson.value("texName", "");
+        std::string sheet = spriteJson.value("sheet", "");
         
         int idx = spriteJson.value("index", -1);
         if(idx > -1){
-            sprite = owner->scene->getAssets()->getSpriteFromSheet(tex, idx);
+            sprite = owner->scene->getAssets()->getSpriteFromSheet(sheet, idx);
         } else {
-            sprite = owner->scene->getAssets()->getTexSprite(tex);
+            sprite = owner->scene->getAssets()->getTexSprite(sheet);
         }
     }
 }
