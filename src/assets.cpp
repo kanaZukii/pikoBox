@@ -10,7 +10,7 @@
 using json = nlohmann::json;
 using namespace piko;
 
-std::string AssetManager::ReadFileToString(const std::string& path) {
+static std::string piko::ReadFileToString(const std::string& path) {
     if (!std::filesystem::exists(path)) {
         throw std::runtime_error("File not found at path: " + path);
     }
@@ -63,55 +63,6 @@ const TextureIMG* AssetManager::addTexture(std::string key, std::string path){
     }
 }
 
-const TextureIMG* AssetManager::getTexture(std::string key){
-    auto tex_exist = textures.find(key);
-    if (tex_exist != textures.end()) {
-        return &(tex_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find texture '%s'", key.c_str());
-    return nullptr;
-}
-
-const TextureIMG* AssetManager::getTextureByPath(std::string path){
-    auto key_exist = texPathToKey.find(path);
-    if (key_exist != texPathToKey.end()) {
-        return getTexture(key_exist->second);
-    }
-   
-    PBOX_ERROR("ASSET_MAN: Cannot find texture with path: %s", path.c_str());
-    return nullptr;
-}
-
-const Sprite* AssetManager::getTexSprite(std::string key){
-    // 1. Ensure the texture exists first
-    auto tex_exist = textures.find(key);
-    if (tex_exist == textures.end()) {
-        PBOX_ERROR("ASSET_MAN: Cannot find texture sprite '%s'", key.c_str());
-        return nullptr;
-    }
-
-    // 2. Return if the 1:1 sprite wrapper is already cached
-    auto tsprite_exist = texSprites.find(key); 
-    if (tsprite_exist != texSprites.end()) {
-        return &(tsprite_exist->second);
-    }
-
-    // 3. Construct the sprite wrapper safely inside the node map space
-    const TextureIMG* texPtr = &(tex_exist->second);
-    Rect srcRect = { 0.0f, 0.0f, static_cast<float>(texPtr->getWidth()), static_cast<float>(texPtr->getHeight()) };
-    
-    auto [it, success] = texSprites.emplace(key, Sprite{ texPtr, srcRect, key, -1, { 0.0f, 0.0f } });
-    return &(it->second);
-}
-
-const Sprite* AssetManager::getTexSpriteByPath(std::string path){
-    auto key_exist = texPathToKey.find(path);
-    if (key_exist != texPathToKey.end()) {
-        return getTexSprite(key_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find texture sprite with path: %s", path.c_str());
-    return nullptr;
-}
 
 const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, AudioClip::AudioType type) {
     auto aud_exist = audios.find(key);
@@ -167,43 +118,6 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
         PBOX_ERROR("ASSET_MAN: Cannot create font atlas '%s': %s", e.what());
         return nullptr; 
     }
-}
-
-const FontAtlas* AssetManager::getFontAtlas(std::string key){
-    auto font_exist = fonts.find(key);
-    if (font_exist != fonts.end()) {
-        return &(font_exist->second);
-    }
-
-    PBOX_ERROR("ASSET_MAN: Cannot find font atlas '%s'", key.c_str());
-    return nullptr;
-}
-
-const FontAtlas* AssetManager::getFontAtlasByPath(std::string path){
-    auto font_exist = fontPathToKey.find(path);
-    if (font_exist != fontPathToKey.end()) {
-        return getFontAtlas(font_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find font atlas with path: %s", path.c_str());
-    return nullptr;
-}
-
-const AudioClip* AssetManager::getAudioClip(std::string key){
-    auto aud_exist = audios.find(key);
-    if (aud_exist != audios.end()) {
-        return &(aud_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find audio clip '%s'", key.c_str());
-    return nullptr;
-}
-
-const AudioClip* AssetManager::getAudioClipByPath(std::string path){
-    auto audio_exist = audioPathToKey.find(path);
-    if (audio_exist != audioPathToKey.end()) {
-        return getAudioClip(audio_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find audio with path: %s", path.c_str());
-    return nullptr;
 }
 
 const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIMG* tex, Vect2 sprSize, int numSprs, int spacing, Vect2 startPos, int wrapX) {
@@ -281,20 +195,6 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     }
 }
 
-const SpriteSheet* AssetManager::getSpriteSheet(std::string key){
-    auto sheet_exist = spriteSheets.find(key);
-    if (sheet_exist != spriteSheets.end()) {
-        return &(sheet_exist->second);
-    }
-    PBOX_ERROR("ASSET_MAN: Cannot find sprite sheet '%s'", key.c_str());
-    return nullptr;
-}
-
-const Sprite* AssetManager::getSpriteFromSheet(std::string sheet, uint16_t index){
-    const SpriteSheet* sprSheet = getSpriteSheet(sheet);
-    return sprSheet ? sprSheet->getSprite(index) : nullptr;
-}
-
 const RenderShader* AssetManager::addShader(std::string key, std::string verPath, std::string fragPath) {
     auto shader_exist = shaders.find(key);
     if (shader_exist != shaders.end()) {
@@ -342,9 +242,114 @@ const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::stri
     }
 }
 
-const RenderShader* AssetManager::getShader(std::string key){
+template<> const TextureIMG* AssetManager::get<TextureIMG>(const std::string& key) {
+    auto tex_exist = textures.find(key);
+    if (tex_exist != textures.end()) {
+        return &(tex_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find texture '%s'", key.c_str());
+    return nullptr;
+}
+
+template<> const TextureIMG* AssetManager::getByPath<TextureIMG>(const std::string& path) {
+    auto key_exist = texPathToKey.find(path);
+    if (key_exist != texPathToKey.end()) {
+        return get<TextureIMG>(key_exist->second);
+    }
+   
+    PBOX_ERROR("ASSET_MAN: Cannot find texture with path: %s", path.c_str());
+    return nullptr;
+}
+
+const Sprite* AssetManager::getTexSprite(std::string key){
+    // 1. Ensure the texture exists first
+    auto tex_exist = textures.find(key);
+    if (tex_exist == textures.end()) {
+        PBOX_ERROR("ASSET_MAN: Cannot find texture sprite '%s'", key.c_str());
+        return nullptr;
+    }
+
+    // 2. Return if the 1:1 sprite wrapper is already cached
+    auto tsprite_exist = texSprites.find(key); 
+    if (tsprite_exist != texSprites.end()) {
+        return &(tsprite_exist->second);
+    }
+
+    // 3. Construct the sprite wrapper safely inside the node map space
+    const TextureIMG* texPtr = &(tex_exist->second);
+    Rect srcRect = { 0.0f, 0.0f, static_cast<float>(texPtr->getWidth()), static_cast<float>(texPtr->getHeight()) };
+    
+    auto [it, success] = texSprites.emplace(key, Sprite{ texPtr, srcRect, key, -1, { 0.0f, 0.0f } });
+    return &(it->second);
+}
+
+const Sprite* AssetManager::getTexSpriteByPath(std::string path){
+    auto key_exist = texPathToKey.find(path);
+    if (key_exist != texPathToKey.end()) {
+        return getTexSprite(key_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find texture sprite with path: %s", path.c_str());
+    return nullptr;
+}
+
+template<> const FontAtlas* AssetManager::get<FontAtlas>(const std::string& key) {
+    auto font_exist = fonts.find(key);
+    if (font_exist != fonts.end()) {
+        return &(font_exist->second);
+    }
+
+    PBOX_ERROR("ASSET_MAN: Cannot find font atlas '%s'", key.c_str());
+    return nullptr;
+}
+
+template<> const FontAtlas* AssetManager::getByPath<FontAtlas>(const std::string& path) {
+    auto font_exist = fontPathToKey.find(path);
+    if (font_exist != fontPathToKey.end()) {
+        return get<FontAtlas>(font_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find font atlas with path: %s", path.c_str());
+    return nullptr;
+}
+
+template<> const AudioClip* AssetManager::get<AudioClip>(const std::string& key) {
+    auto aud_exist = audios.find(key);
+    if (aud_exist != audios.end()) {
+        return &(aud_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find audio clip '%s'", key.c_str());
+    return nullptr;
+}
+
+template<> const AudioClip* AssetManager::getByPath<AudioClip>(const std::string& path) {
+    auto audio_exist = audioPathToKey.find(path);
+    if (audio_exist != audioPathToKey.end()) {
+        return get<AudioClip>(audio_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find audio with path: %s", path.c_str());
+    return nullptr;
+}
+
+template<> const SpriteSheet* AssetManager::get<SpriteSheet>(const std::string& key) {
+    auto sheet_exist = spriteSheets.find(key);
+    if (sheet_exist != spriteSheets.end()) {
+        return &(sheet_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find spritesheet '%s'", key.c_str());
+    return nullptr;
+}
+
+const Sprite* AssetManager::getSpriteFromSheet(std::string sheet, uint16_t index){
+    const SpriteSheet* sprSheet = get<SpriteSheet>(sheet);
+    return sprSheet ? sprSheet->getSprite(index) : nullptr;
+}
+
+template<> const RenderShader* AssetManager::get<RenderShader>(const std::string& key) {
     auto shader_exist = shaders.find(key);
-    return (shader_exist != shaders.end()) ? &(shader_exist->second) : nullptr;
+    if (shader_exist != shaders.end()) {
+        return &(shader_exist->second);
+    }
+    PBOX_ERROR("ASSET_MAN: Cannot find shader '%s'", key.c_str());
+    return nullptr;
 }
 
 std::string AssetManager::serialize() {
@@ -471,7 +476,7 @@ void AssetManager::deserialize(const std::string& rawJson) {
             std::string texPath = sheetData.value("texturePath", "");
             
             // Look up the matching texture address via its disk path token
-            const TextureIMG* tex = this->getTextureByPath(texPath);
+            const TextureIMG* tex = this->getByPath<TextureIMG>(texPath);
 
             if (tex != nullptr && sheetData.contains("sprSources") && sheetData["sprSources"].is_array()) {
                 std::vector<Rect> parsedSources;

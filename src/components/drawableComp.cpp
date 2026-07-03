@@ -223,7 +223,7 @@ void TextRenderer::deserialize(const std::string& rawJson) {
     font = nullptr;
     if(data.contains("fontPath")){
         std::string fontPath = data.value("fontPath", "");
-        font = owner->scene->getAssets()->getFontAtlasByPath(fontPath);
+        font = owner->scene->getAssets()->get<FontAtlas>(fontPath);
     }
 
     text = data.value("text", "");

@@ -65,7 +65,7 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     
     renderMAN->init();
     renderMAN->setCamera(&activeCam);
-    renderMAN->setShader(assetMAN->getShader("default"));
+    renderMAN->setShader(assetMAN->get<RenderShader>("default"));
     
     sceneMAN->init();
     sceneMAN->setEventBroker(&eventBroker);

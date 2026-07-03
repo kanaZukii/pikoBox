@@ -12,36 +12,39 @@
 #include "piko/font.hpp"
 
 namespace piko {
+    static std::string ReadFileToString(const std::string& path);
+
     class AssetManager{
         public:
+            enum class AssetType {Texture, Audio, Font, Shader, SpriteSheet};
+
+            struct AssetHandle {
+                std::string key;
+                AssetType type;
+            };
+
             ~AssetManager() = default;
             AssetManager(const AssetManager&) = delete;
             AssetManager& operator=(const AssetManager&) = delete;
-
-            static std::string ReadFileToString(const std::string& path);
+            
+            const TextureIMG* addTexture(std::string key, std::string path);
+            const AudioClip* addAudioClip(std::string key, std::string path, AudioClip::AudioType type);
+            const FontAtlas* addFontAtlas(std::string key, std::string path, int baseSize);
 
             const RenderShader* addShader(std::string key, std::string verPath, std::string fragPath);
             const RenderShader* addShaderFromMemory(std::string key, std::string verPath, std::string fragPath);
-            const RenderShader* getShader(std::string key);
-
-            const AudioClip* addAudioClip(std::string key, std::string path, AudioClip::AudioType type);
-            const AudioClip* getAudioClip(std::string key);
-            const AudioClip* getAudioClipByPath(std::string path);
-
-            const FontAtlas* addFontAtlas(std::string key, std::string path, int baseSize);
-            const FontAtlas* getFontAtlas(std::string key);
-            const FontAtlas* getFontAtlasByPath(std::string path);
-
-            const TextureIMG* addTexture(std::string key, std::string path);
-            const TextureIMG* getTexture(std::string key);
-            const TextureIMG* getTextureByPath(std::string path);
-
-            const Sprite* getTexSprite(std::string key);
-            const Sprite* getTexSpriteByPath(std::string path);
 
             const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, Vect2 sprSize, int numSprs, int spacing=0, Vect2 startPos={0.0f}, int wrapX=0);
             const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, const std::vector<Rect>& sources);
-            const SpriteSheet* getSpriteSheet(std::string key);
+            
+            template<typename T>
+            const T* get(const std::string& key);
+
+            template<typename T>
+            const T* getByPath(const std::string& path);
+
+            const Sprite* getTexSprite(std::string key);
+            const Sprite* getTexSpriteByPath(std::string path);
             const Sprite* getSpriteFromSheet(std::string sheet, uint16_t index);
 
             const std::vector<std::string> getTextureNames() const;
