@@ -71,7 +71,7 @@ namespace piko {
 
             RenderTexture2D* drawCanvas = nullptr;
 
-            RenderShader* activeShader = nullptr;
+            const RenderShader* activeShader = nullptr;
             EventBroker eventBroker;
             Cam activeCam;
 

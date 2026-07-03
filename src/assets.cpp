@@ -295,7 +295,7 @@ const Sprite* AssetManager::getSpriteFromSheet(std::string sheet, uint16_t index
     return sprSheet ? sprSheet->getSprite(index) : nullptr;
 }
 
-RenderShader* AssetManager::addShader(std::string key, std::string verPath, std::string fragPath) {
+const RenderShader* AssetManager::addShader(std::string key, std::string verPath, std::string fragPath) {
     auto shader_exist = shaders.find(key);
     if (shader_exist != shaders.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create shader '%s'. It already exist.", key.c_str());
@@ -321,7 +321,7 @@ RenderShader* AssetManager::addShader(std::string key, std::string verPath, std:
     }
 }
 
-RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string verCode, std::string fragCode) {
+const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string verCode, std::string fragCode) {
     auto shader_exist = shaders.find(key);
     if (shader_exist != shaders.end()) {
         return &(shader_exist->second);
@@ -342,7 +342,7 @@ RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string ver
     }
 }
 
-RenderShader* AssetManager::getShader(std::string key){
+const RenderShader* AssetManager::getShader(std::string key){
     auto shader_exist = shaders.find(key);
     return (shader_exist != shaders.end()) ? &(shader_exist->second) : nullptr;
 }

@@ -71,7 +71,7 @@ RenderShader& RenderShader::operator=(RenderShader&& other) noexcept {
     return *this;
 }
 
-int RenderShader::getLocationID(const std::string& varName) {
+int RenderShader::getLocationID(const std::string& varName) const {
     auto loc_exist = locs.find(varName);
     if (loc_exist != locs.end()) {
         if(loc_exist->second == -1){

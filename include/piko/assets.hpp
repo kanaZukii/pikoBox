@@ -20,9 +20,9 @@ namespace piko {
 
             static std::string ReadFileToString(const std::string& path);
 
-            RenderShader* addShader(std::string key, std::string verPath, std::string fragPath);
-            RenderShader* addShaderFromMemory(std::string key, std::string verPath, std::string fragPath);
-            RenderShader* getShader(std::string key);
+            const RenderShader* addShader(std::string key, std::string verPath, std::string fragPath);
+            const RenderShader* addShaderFromMemory(std::string key, std::string verPath, std::string fragPath);
+            const RenderShader* getShader(std::string key);
 
             const AudioClip* addAudioClip(std::string key, std::string path, AudioClip::AudioType type);
             const AudioClip* getAudioClip(std::string key);

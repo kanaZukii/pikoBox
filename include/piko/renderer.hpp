@@ -50,7 +50,7 @@ namespace piko {
         void init();
         bool add(const RenderQuad& rQuad);
 
-        void flush(RenderShader* shader, Cam* camera);
+        void flush(const RenderShader* shader, Cam* camera);
 
         const bool hasRoom() const{ return quadCount < MAX_QUADS;}
         const bool hasRoomForTexture() const{ return texCount < MAX_TEXTURES;}
@@ -131,7 +131,7 @@ namespace piko {
         void flush();
 
         void setCamera(Cam* camera) { activeCam = camera; }
-        void setShader(RenderShader* shader) { activeShader = shader; }
+        void setShader(const RenderShader* shader) { activeShader = shader; }
 
     private:
         Renderer(){}
@@ -143,7 +143,7 @@ namespace piko {
         RenderQuad rQuadQueue[MAX_RQUAD];
         std::vector<RenderBatch> batches;
         Cam* activeCam = nullptr;
-        RenderShader* activeShader = nullptr;
+        const RenderShader* activeShader = nullptr;
 
         friend class Engine;
     };

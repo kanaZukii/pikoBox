@@ -207,7 +207,7 @@ int RenderBatch::getTextureSlot(const TextureIMG* tex){
 }
 
 
-void RenderBatch::flush(RenderShader* shader, Cam* camera) {
+void RenderBatch::flush(const RenderShader* shader, Cam* camera) {
     if (quadCount == 0) return;
 
     Vertex* vPtr = vertices.data();

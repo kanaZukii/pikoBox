@@ -22,7 +22,7 @@ namespace piko {
             void begin() const;
             void end() const;
 
-            int getLocationID(const std::string& varName);
+            int getLocationID(const std::string& varName) const;
             inline const Shader& getProgram() const noexcept {return *program;}
 
             inline const std::string getName() const noexcept { return name; }
@@ -33,7 +33,7 @@ namespace piko {
         private:
             Shader* program = nullptr;
             std::string name = "";
-            std::unordered_map<std::string, int> locs;
+            mutable std::unordered_map<std::string, int> locs;
     };
 
 
