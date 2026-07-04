@@ -160,6 +160,21 @@ void AudioManager::playClip(const AudioClip* clip, bool shouldLoop, int channel,
     }
 }
 
+// AudioManager.cpp
+void AudioManager::setChannelMute(int channelIdx, bool muted) {
+    static std::unordered_map<int, float> cachedVolumes;
+
+    if (muted) {
+        // Store current and set to 0
+        cachedVolumes[channelIdx] = channelVolumes[channelIdx];
+        setChannelVolume(channelIdx, 0.0f);
+    } else {
+        // Restore from cache if it exists, otherwise default to 1.0f
+        float vol = cachedVolumes.count(channelIdx) ? cachedVolumes[channelIdx] : 1.0f;
+        setChannelVolume(channelIdx, vol);
+    }
+}
+
 void AudioManager::stopChannelStream(int channelIdx) {
     if (activeStreams.count(channelIdx) && activeStreams[channelIdx].isActive) {
         StopMusicStream(*activeStreams[channelIdx].streamRef);

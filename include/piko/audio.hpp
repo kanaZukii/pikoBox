@@ -22,6 +22,8 @@ namespace piko {
         void setChannelVolume(int channelIdx, float volume);
         float getChannelVolume(int channelIdx) const;
 
+        void setChannelMute(int channelIdx, bool muted);
+
         // Playback API
         void playClip(const AudioClip* clip, bool shouldLoop, int channel, float startAt=0.0f);
         void stopChannelStream(int channelIdx);
