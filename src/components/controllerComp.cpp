@@ -235,7 +235,7 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
 
 void AudioPlayer::play(const std::string& audio, bool loop, int channel, float startAt) {
     const AudioClip* newAudio = owner->scene->getAssets()->get<AudioClip>(audio);
-    if(!newAudio) return;
+    if(!newAudio) {stop(); currentClip = nullptr; return;}
 
     
     if (newAudio->getType() == AudioClip::AudioType::STREAM_MUSIC && newAudio != currentClip) {
@@ -248,7 +248,7 @@ void AudioPlayer::play(const std::string& audio, bool loop, int channel, float s
 }
 
 void AudioPlayer::play(const AudioClip* audio, bool loop, int channel, float startAt){
-    if(!audio) return;
+    if(!audio) {stop(); currentClip = nullptr; return;}
 
     
     if (audio->getType() == AudioClip::AudioType::STREAM_MUSIC && audio != currentClip) {

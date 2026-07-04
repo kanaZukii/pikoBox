@@ -327,7 +327,7 @@ void TextBoxRenderer::update(float dt) {
 }
 
 void TextBoxRenderer::draw(Renderer& renderer) {
-    if ((int)color.a <= 0 || cachedLines.empty()) return;
+    if ((int)color.a <= 0 || cachedLines.empty() || !font) return;
 
     const Rect& bounds = getGlobalTransform();
     float scaleFactor = fontSize / (float)font->getBaseSize();
