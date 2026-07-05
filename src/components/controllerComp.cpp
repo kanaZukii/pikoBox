@@ -3,6 +3,7 @@
 #include "piko/assets.hpp"
 #include "piko/audio.hpp"
 #include "piko/audioClip.hpp"
+#include "piko/animation.hpp"
 
 #include "raylib.h"
 #include "json.hpp"
@@ -12,7 +13,7 @@ using namespace piko;
 
 
 void AnimationPlayer::update(float dt){
-    if (!isPlaying || !currentClip) return;
+    if (!playing || !currentClip) return;
 
     if(rendererPtr && !owner->scene->componentExist(rendererID)){
         rendererPtr = nullptr;
@@ -20,36 +21,36 @@ void AnimationPlayer::update(float dt){
     }
 
     // 1. Lazy-fallback to check if the target renderer string version was set
-    if (!rendererPtr || currentClip->frames.empty()) return; 
+    if (!rendererPtr || currentClip->getSize() <= 0) return; 
 
     // 2. Accumulate delta time
     frameTimer += dt;
 
     // 3. Evaluate Frame Transitions
-    const auto& currentFrame = currentClip->frames[currentFrameIndex];
-    if (frameTimer >= currentFrame.duration) {
-        frameTimer -= currentFrame.duration;
+    const auto& currentFrame = currentClip->getFrame(currentFrameIndex);
+    if (frameTimer >= currentFrame->duration) {
+        frameTimer -= currentFrame->duration;
         currentFrameIndex++;
 
         // Handle looping limits
-        if (currentFrameIndex >= currentClip->frames.size()) {
-            if (currentClip->loop) {
+        if (currentFrameIndex >= currentClip->getSize()) {
+            if (onLoop) {
                 currentFrameIndex = 0;
             } else {
-                currentFrameIndex = currentClip->frames.size() - 1;
-                isPlaying = false; // Halt playback
+                currentFrameIndex = currentClip->getSize() - 1;
+                playing = false; // Halt playback
             }
         }
     }
 
     // 4. Update the Active Renderer Profile
-    const auto& activeFrame = currentClip->frames[currentFrameIndex];
-    if (activeFrame.sprite) {
+    const auto& activeFrame = currentClip->getFrame(currentFrameIndex);
+    if (activeFrame->sprite) {
         // Assign the active frame's texture and source rect bounds
-        rendererPtr->setSprite(activeFrame.sprite);
+        rendererPtr->setSprite(activeFrame->sprite);
         
         // Pass the frame's origin offset down to the renderer's rendering origin!
-        rendererPtr->setOffset(activeFrame.offset);
+        rendererPtr->setOffset(activeFrame->offset);
     }
 }
 
@@ -72,125 +73,75 @@ void AnimationPlayer::setRenderer(const std::string& sprrenderer){
     }
 }
 
-void AnimationPlayer::addClip(const Clip& clip){
-    clips[clip.name] = clip;
+void AnimationPlayer::play(const AnimationClip* clip, bool loop){
+    if(!clip){stop(); currentClip = nullptr; return;}
+
+    if (currentClip){
+        if(currentClip->getName() == clip->getName() && playing) return;
+    }
+    
+    currentClip = clip;
+    currentFrameIndex = 0;
+    frameTimer = 0.0f;
+    onLoop = loop;
+
+    if(currentClip){
+        playing = true;
+    } else{
+        playing = false;
+    }
 }
 
-void AnimationPlayer::play(const std::string& name){
+void AnimationPlayer::play(const std::string& name, bool loop){
     if (currentClip){
-        if(currentClip->name == name && isPlaying) return;
+        if(currentClip->getName() == name && playing) return;
     }
+    currentClip = owner->scene->getAssets()->get<AnimationClip>(name);
+    currentFrameIndex = 0;
+    frameTimer = 0.0f;
+    onLoop = loop;
 
-    auto it = clips.find(name);
-    if (it != clips.end()) {
-        currentClip = &it->second;
-        currentFrameIndex = 0;
-        frameTimer = 0.0f;
-        isPlaying = true;
+    if(currentClip){
+        playing = true;
+    } else{
+        playing = false;
     }
 }
 
 void AnimationPlayer::stop(){
-    isPlaying = false;
+    playing = false;
     currentFrameIndex = 0;
     frameTimer = 0.0f;
 }
 
-void AnimationPlayer::pause(){
-    isPlaying = false;
-}
-
 void AnimationPlayer::resume(){
-    if(currentClip){isPlaying = true;}
+    if(currentClip){
+        playing = true;
+    }
 }
 
-std::string AnimationPlayer::serializeClip(const Clip& clip){
-    json serializedFrames = json::array();
-    
-    for(const Frame& f : clip.frames ){
-        json frameJson = {
-            {"duration", f.duration},
-            {"offset", {{"x", f.offset.x}, {"y", f.offset.y}}}
-        };
-        
-        if(f.sprite){
-            json spriteJson = {
-                {"sheet", f.sprite->sheet}
-            };
-            if(f.sprite->index > -1) {
-                spriteJson["index"] = f.sprite->index;
-            }
-            frameJson["sprite"] = spriteJson;
-        }
-        
-        serializedFrames.push_back(frameJson);
-    }
-    json data = {
-        {"loop", clip.loop},
-        {"frames", serializedFrames}
-    };
-    
-    return data.dump();
+void AnimationPlayer::pause(){
+    playing = false;
 }
 
-AnimationPlayer::Clip AnimationPlayer::deserializeClip(const std::string& clipName, const std::string& rawClipJson) {
-    json data = json::parse(rawClipJson);
-    
-    Clip clip;
-    clip.name = clipName;
-    clip.loop = data.value("loop", true);
-
-    if (data.contains("frames") && data["frames"].is_array()) {
-        for (const auto& frameJson : data["frames"]) {
-            Frame frame;
-            
-            frame.duration = frameJson.value("duration", 0.2f);
-            
-            if (frameJson.contains("offset")) {
-                frame.offset.x = frameJson["offset"].value("x", 0.0f);
-                frame.offset.y = frameJson["offset"].value("y", 0.0f);
-            }
-
-            if (frameJson.contains("sprite") && !frameJson["sprite"].is_null()) {
-                auto& spriteJson = frameJson["sprite"];
-                
-                std::string sheetName = spriteJson.value("sheet", "");
-                int index = spriteJson.value("index", -1);
-                if(index > -1){
-                    frame.sprite = owner->scene->getAssets()->getSpriteFromSheet(sheetName, index);
-                } else {
-                    frame.sprite = owner->scene->getAssets()->getTexSprite(sheetName);
-                }
-            } else {
-                frame.sprite = nullptr;
-            }
-
-            // Push the fully reconstructed frame into your clip's frame pool
-            clip.frames.push_back(frame);
-        }
-    }
-
-    return clip;
+std::string AnimationPlayer::getCurrentClipName() const {
+    if(currentClip) {return currentClip->getName();}
+    return "";
 }
 
 std::string AnimationPlayer::serialize(){
     json data = json::parse(Component::serialize());
     data["currentFrameIndex"] = currentFrameIndex;
     data["frameTimer"] = frameTimer;
-    data["isPlaying"] = isPlaying;
+    data["playing"] = playing;
+    data["onLoop"] = onLoop;
 
     if(rendererPtr){
         data["rendererPtr"] = rendererPtr->getAlias();
     }
 
     if(currentClip){
-        data["currentClip"] = currentClip->name;
-    }
-
-    if(!clips.empty()){
-        json serializedClips = json::object();
-        for(const auto& [key, val] : clips) serializedClips[key] = json::parse(serializeClip(val));
-        data["clips"] = serializedClips;
+        data["currentClip"] = currentClip->getName();
     }
 
     return data.dump();
@@ -200,7 +151,8 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
     Component::deserialize(rawJson);
     json data = json::parse(rawJson);
 
-    isPlaying = data.value("isPlaying", false); 
+    playing = data.value("playing", false); 
+    onLoop = data.value("onLoop", false); 
     frameTimer = data.value("frameTimer", 0.0f);
     currentFrameIndex = data.value("currentFrameIndex", 0);
 
@@ -214,22 +166,10 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
         });
     }
 
-    if (data.contains("clips") && data["clips"].is_object()) {
-        this->clips.clear();
-
-        for (const auto& [clipName, clipData] : data["clips"].items()) {
-            std::string serializedClipState = clipData.dump();
-            this->clips[clipName] = deserializeClip(clipName, serializedClipState);
-        }
-    }
-
     currentClip = nullptr;
     if(data.contains("currentClip")){
         std::string clipName = data.value("currentClip", "");
-        auto it = this->clips.find(clipName);
-        if(it != this->clips.end()) {
-            currentClip = &(it->second);
-        }
+        currentClip = owner->scene->getAssets()->get<AnimationClip>(clipName);
     }
 }
 

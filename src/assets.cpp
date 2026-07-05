@@ -137,6 +137,53 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
     }
 }
 
+const RenderShader* AssetManager::addShader(std::string key, std::string verPath, std::string fragPath) {
+    auto shader_exist = shaders.find(key);
+    if (shader_exist != shaders.end()) {
+        PBOX_WARN("ASSET_MAN: Cannot create shader '%s'. It already exist.", key.c_str());
+        return &(shader_exist->second);
+    }
+
+    try {
+        // Read file contents to raw strings right here in the asset system
+        std::string vCode = ReadFileToString(verPath);
+        std::string fCode = ReadFileToString(fragPath);
+
+        auto [it, success] = shaders.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(key),
+            std::forward_as_tuple(vCode, fCode, key) // Passes the code strings down!
+        );
+        it->second.verPath = verPath;
+        it->second.fragPath = fragPath;
+        return &(it->second);
+    } catch (const std::exception& e) {
+        PBOX_ERROR("ASSET_MAN: Failed to create shader '%s': %s", key.c_str(), e.what());
+        return nullptr; 
+    }
+}
+
+const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string verCode, std::string fragCode) {
+    auto shader_exist = shaders.find(key);
+    if (shader_exist != shaders.end()) {
+        return &(shader_exist->second);
+    }
+
+    try {
+        auto [it, success] = shaders.emplace(
+            std::piecewise_construct,
+            std::forward_as_tuple(key),
+            std::forward_as_tuple(verCode, fragCode, key)
+        );
+        it->second.verPath = "[MEMORY]";
+        it->second.fragPath = "[MEMORY]";
+        return &(it->second);
+    } catch (const std::exception& e) {
+        PBOX_ERROR("ASSET_MAN: failed to create shader '%s' from memory: %s", key.c_str(), e.what());
+        return nullptr;
+    }
+}
+
 const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIMG* tex, Vect2 sprSize, int numSprs, int spacing, Vect2 startPos, int wrapX) {
     auto sheet_exist = spriteSheets.find(key);
     if (sheet_exist != spriteSheets.end()) {
@@ -212,52 +259,28 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     }
 }
 
-const RenderShader* AssetManager::addShader(std::string key, std::string verPath, std::string fragPath) {
-    auto shader_exist = shaders.find(key);
-    if (shader_exist != shaders.end()) {
-        PBOX_WARN("ASSET_MAN: Cannot create shader '%s'. It already exist.", key.c_str());
-        return &(shader_exist->second);
+const AnimationClip* AssetManager::addAnimationClip(std::string key, const std::vector<AnimationFrame>& frames){
+    auto anim_exist = animationClips.find(key);
+    if (anim_exist != animationClips.end()) {
+        PBOX_WARN("ASSET_MAN: Cannot create animation clip '%s'. It already exist.", key.c_str());
+        return &anim_exist->second;
     }
 
-    try {
-        // Read file contents to raw strings right here in the asset system
-        std::string vCode = ReadFileToString(verPath);
-        std::string fCode = ReadFileToString(fragPath);
-
-        auto [it, success] = shaders.emplace(
+     try {
+        // Emplace your sheet directly to keep the vector allocations completely secure inside the heap node
+        auto [it, success] = animationClips.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(key),
-            std::forward_as_tuple(vCode, fCode, key) // Passes the code strings down!
+            std::forward_as_tuple(frames, key)
         );
-        it->second.verPath = verPath;
-        it->second.fragPath = fragPath;
+
         return &(it->second);
     } catch (const std::exception& e) {
-        PBOX_ERROR("ASSET_MAN: Failed to create shader '%s': %s", key.c_str(), e.what());
-        return nullptr; 
-    }
-}
-
-const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string verCode, std::string fragCode) {
-    auto shader_exist = shaders.find(key);
-    if (shader_exist != shaders.end()) {
-        return &(shader_exist->second);
-    }
-
-    try {
-        auto [it, success] = shaders.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(verCode, fragCode, key)
-        );
-        it->second.verPath = "[MEMORY]";
-        it->second.fragPath = "[MEMORY]";
-        return &(it->second);
-    } catch (const std::exception& e) {
-        PBOX_ERROR("ASSET_MAN: failed to create shader '%s' from memory: %s", key.c_str(), e.what());
+        PBOX_ERROR("ASSET_MAN: Cannot create animation clip '%s': %s", key.c_str(), e.what());
         return nullptr;
     }
 }
+
 
 const Sprite* AssetManager::getTexSprite(std::string key){
     // 1. Ensure the texture exists first
@@ -341,8 +364,9 @@ void AssetManager::flushDeletionQueue() {
             case AssetType::Texture: textures.erase(a.key);break;
             case AssetType::Font: fonts.erase(a.key); break;
             case AssetType::Audio: audios.erase(a.key); break;
-            case AssetType::SpriteSheet: spriteSheets.erase(a.key); break;
             case AssetType::Shader: shaders.erase(a.key); break;
+            case AssetType::SpriteSheet: spriteSheets.erase(a.key); break;
+            case AssetType::AnimationClip : animationClips.erase(a.key); break;
         }
     }
 

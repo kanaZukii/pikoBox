@@ -11,19 +11,20 @@
 #include "piko/shader.hpp"
 #include "piko/audioClip.hpp"
 #include "piko/font.hpp"
+#include "piko/animation.hpp"
 #include "piko/logger.hpp"
 
 namespace piko {
     static std::string ReadFileToString(const std::string& path);
 
-    enum class AssetType {Texture, Audio, Font, Shader, SpriteSheet};
+    enum class AssetType {Texture, Audio, Font, Shader, SpriteSheet, AnimationClip};
     template<typename T> struct AssetMapType;
     template<> struct AssetMapType<TextureIMG> { static constexpr AssetType type = AssetType::Texture; };
     template<> struct AssetMapType<AudioClip> { static constexpr AssetType type = AssetType::Audio; };
     template<> struct AssetMapType<FontAtlas> { static constexpr AssetType type = AssetType::Font; };
     template<> struct AssetMapType<RenderShader> { static constexpr AssetType type = AssetType::Shader; };
-    template<> struct AssetMapType<SpriteSheet> { static constexpr AssetType type = AssetType::SpriteSheet; };
-
+    template<> struct AssetMapType<SpriteSheet> { static constexpr AssetType type = AssetType::SpriteSheet; }; 
+    template<> struct AssetMapType<AnimationClip> { static constexpr AssetType type = AssetType::AnimationClip; };
 
     class AssetManager{
         public:
@@ -42,6 +43,8 @@ namespace piko {
 
             const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, Vect2 sprSize, int numSprs, int spacing=0, Vect2 startPos={0.0f}, int wrapX=0);
             const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, const std::vector<Rect>& sources);
+
+            const AnimationClip* addAnimationClip(std::string key, const std::vector<AnimationFrame>& frames);
 
             const Sprite* getTexSprite(std::string key);
             const Sprite* getTexSpriteByPath(std::string path);
@@ -80,8 +83,9 @@ namespace piko {
             std::unordered_set<std::string> sfx;
             std::unordered_set<std::string> music;
             
-            std::unordered_map<std::string, SpriteSheet> spriteSheets;
             std::unordered_map<std::string, RenderShader> shaders;
+            std::unordered_map<std::string, SpriteSheet> spriteSheets;
+            std::unordered_map<std::string, AnimationClip> animationClips;
 
             std::vector<AssetHandle> deletionQueue;
 
@@ -106,16 +110,20 @@ namespace piko {
                     auto aud_exist = audios.find(key);
                     if (aud_exist != audios.end()) return &(aud_exist->second); 
                 }
-                else if constexpr (type == AssetType::SpriteSheet) {
-                    auto sheet_exist = spriteSheets.find(key);
-                    if (sheet_exist != spriteSheets.end()) return &(sheet_exist->second);
-                }
                 else if constexpr (type == AssetType::Shader){
                     auto shader_exist = shaders.find(key);
                     if (shader_exist != shaders.end()) return &(shader_exist->second);
                 }
+                else if constexpr (type == AssetType::SpriteSheet) {
+                    auto sheet_exist = spriteSheets.find(key);
+                    if (sheet_exist != spriteSheets.end()) return &(sheet_exist->second);
+                }
+                else if constexpr (type == AssetType::AnimationClip) {
+                    auto anim_exist = animationClips.find(key);
+                    if (anim_exist != animationClips.end()) return &(anim_exist->second);
+                }
                 
-                static std::vector<std::string> types = {"Texture", "Audio", "Font", "Shader", "SpriteSheet"};
+                static std::vector<std::string> types = {"Texture", "Audio", "Font", "Shader", "SpriteSheet", "AnimationClip"};
                 PBOX_ERROR("ASSET_MAN: Cannot find %s '%s'", types[typeIdx].c_str(), key.c_str());
                 return nullptr;
             }
@@ -152,8 +160,9 @@ namespace piko {
                 if constexpr (type == AssetType::Texture)     return textures.count(key) > 0;
                 if constexpr (type == AssetType::Font)        return fonts.count(key) > 0;
                 if constexpr (type == AssetType::Audio)       return audios.count(key) > 0;
-                if constexpr (type == AssetType::SpriteSheet) return spriteSheets.count(key) > 0;
                 if constexpr (type == AssetType::Shader)      return shaders.count(key) > 0;
+                if constexpr (type == AssetType::SpriteSheet) return spriteSheets.count(key) > 0;
+                if constexpr (type == AssetType::AnimationClip) return animationClips.count(key) > 0;
                 
                 return false;
             }

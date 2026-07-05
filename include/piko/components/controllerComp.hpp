@@ -4,24 +4,14 @@
 
 namespace piko {
    
+    struct Sprite;
+    class AnimationClip;
+
     class AudioClip;
     class SpriteRenderer;
-    struct Sprite;
 
     class AnimationPlayer : public Component {
         public:
-            struct Frame {
-                const Sprite* sprite = nullptr;
-                float duration = 0.2f;
-                Vect2 offset = {0.0f, 0.0f};
-            };
-
-            struct Clip {
-                std::string name;
-                std::vector<AnimationPlayer::Frame> frames;
-                bool loop = true;
-            };
-
             void update(float dt) override;
 
             std::string serialize() override; 
@@ -31,30 +21,28 @@ namespace piko {
             void setRenderer(const std::string& sprrenderer);
             void setRenderer(SpriteRenderer* renderer);
 
-            void addClip(const Clip& clip);
-            void play(const std::string& name);
-            void stop();
-            void pause();
-            void resume();
+            void setLoop(bool loop){onLoop = loop;}
 
-            inline std::string getCurrentClipName() const {
-                if(currentClip) {return currentClip->name;}
-                return "";
-            }
-            bool getIsPlaying() const {return isPlaying;}
+            void play(const std::string& name, bool loop=false);
+            void play(const AnimationClip* animation, bool loop=false);
+            void stop();
+
+            void resume();
+            void pause();
+
+            std::string getCurrentClipName() const;
+            bool isPlaying() const {return playing;}
+            bool isLooping() const {return onLoop; }
 
          protected:
             AnimationPlayer() : Component() {className = "AnimationPlayer";}
 
-            std::string serializeClip(const Clip& clip);
-            Clip deserializeClip(const std::string& clipName, const std::string& rawJson);
-
-            std::unordered_map<std::string, Clip> clips;
-            const Clip* currentClip = nullptr;
+            const AnimationClip* currentClip = nullptr;
             
             int currentFrameIndex = 0;
             float frameTimer = 0.0f;
-            bool isPlaying = false;
+            bool playing = false;
+            bool onLoop = false;
             
             uint32_t rendererID = 0;
             SpriteRenderer* rendererPtr = nullptr;
