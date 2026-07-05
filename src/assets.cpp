@@ -91,9 +91,9 @@ const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, A
         
         audioPathToKey[path] = key;
         if(type == AudioClip::AudioType::STATIC_SFX){
-            sfx.push_back(key);
+            sfx.insert(key);
         } else {
-            music.push_back(key);
+            music.insert(key);
         }
 
         return &(it->second);
@@ -319,6 +319,8 @@ void AssetManager::flushDeletionQueue() {
                 const auto* audio = get<AudioClip>(a.key);     
                 if(audio){
                     audioPathToKey.erase(audio->getFilePath());
+                    sfx.erase(a.key);
+                    music.erase(a.key);
                 }
                 break;
             }
@@ -583,5 +585,17 @@ const std::vector<std::string> AssetManager::getFontNames() const{
     return names;  
 }
 
-const std::vector<std::string> AssetManager::getSfxNames() const { return sfx; }
-const std::vector<std::string> AssetManager::getMusicNames() const { return music; }
+const std::vector<std::string> AssetManager::getSfxNames() const { 
+    std::vector<std::string> names;
+    for(std::string key : sfx){
+        names.push_back(key);
+    }
+    return names;  
+}
+const std::vector<std::string> AssetManager::getMusicNames() const { 
+    std::vector<std::string> names;
+    for(std::string key : music){
+        names.push_back(key);
+    }
+    return names;  
+ }

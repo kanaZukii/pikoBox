@@ -76,9 +76,9 @@ namespace piko {
 
             std::unordered_map<std::string, AudioClip> audios;
             std::unordered_map<std::string, std::string> audioPathToKey;
-            
-            std::vector<std::string> sfx;
-            std::vector<std::string> music;
+
+            std::unordered_set<std::string> sfx;
+            std::unordered_set<std::string> music;
             
             std::unordered_map<std::string, SpriteSheet> spriteSheets;
             std::unordered_map<std::string, RenderShader> shaders;
