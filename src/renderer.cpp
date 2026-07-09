@@ -13,11 +13,6 @@
 
 using namespace piko;
 
-RenderBatch::RenderBatch(int zIndex, bool useScreenSpace, bool clip, Rect clipRegion) 
-    : zIndex(zIndex), useScreenSpace(useScreenSpace), doClipping(clip), clipRegion(clipRegion) {
-    textures.fill(nullptr);
-}
-
 RenderBatch::~RenderBatch() {
     if (VAO != 0) glDeleteVertexArrays(1, &VAO);
     if (VBO != 0) glDeleteBuffers(1, &VBO);
@@ -69,6 +64,22 @@ RenderBatch& RenderBatch::operator=(RenderBatch&& other) noexcept {
     return *this;
 }
 
+void RenderBatch::activate (int zIndex, bool useScreenSpace, bool clip, Rect clipRegion){
+    this->zIndex = zIndex; 
+    this->useScreenSpace = useScreenSpace; 
+    this->doClipping = clip; 
+    this->clipRegion = clipRegion;
+    active = true;
+ }
+    
+ void RenderBatch::reset(){
+    zIndex = 0;
+    useScreenSpace = false;
+    doClipping = false;
+    clipRegion = {0.0f, 0.0f, 0.0f, 0.0f};
+    textures.fill(nullptr);
+    active = false;
+ }
 
 void RenderBatch::init(){
     glGenVertexArrays(1, &VAO);
@@ -103,13 +114,11 @@ void RenderBatch::init(){
     glBindVertexArray(0);
 }
 
-std::vector<uint32_t> RenderBatch::generateIndices()
-{
+std::vector<uint32_t> RenderBatch::generateIndices() {
     std::vector<uint32_t> indices;
     indices.reserve(MAX_QUADS * 6);
 
-    for (uint32_t i = 0; i < MAX_QUADS; i++)
-    {
+    for (uint32_t i = 0; i < MAX_QUADS; i++){
         uint32_t offset = i * 4;
 
         indices.push_back(offset + 3);
@@ -181,7 +190,7 @@ void RenderBatch::loadVertexProperties(const RenderQuad& rQuad, Vertex* quadptr,
 }
 
 bool RenderBatch::add(const RenderQuad& rQuad){
-    if(quadCount >= MAX_QUADS || rQuad.zIndex != zIndex) return false;
+    if(quadCount >= MAX_QUADS || rQuad.zIndex != zIndex || !active) return false;
 
     int texSlot = getTextureSlot(rQuad.texture);
     if(texSlot == -1){
@@ -208,7 +217,7 @@ int RenderBatch::getTextureSlot(const TextureIMG* tex){
 
 
 void RenderBatch::flush(const RenderShader* shader, Cam* camera) {
-    if (quadCount == 0) return;
+    if (quadCount <= 0) return;
 
     Vertex* vPtr = vertices.data();
 
@@ -273,9 +282,16 @@ void RenderBatch::flush(const RenderShader* shader, Cam* camera) {
 }
 
 void Renderer::init(){
-    batches.reserve(64);
+    for(auto& batch : batches) {
+        batch.init(); 
+    }
 
     PBOX_INFO("RENDERER: Renderer Initialized.");
+}
+
+void Renderer::clear(){
+    for(auto& b : batches){b.reset();}
+    batchCount = 0;
 }
 
 void Renderer::draw(const TextureIMG* tex, Rect texsrc, Rect dest, Vect2 origin,
@@ -286,6 +302,8 @@ void Renderer::draw(const TextureIMG* tex, Rect texsrc, Rect dest, Vect2 origin,
     if(rQuadCount >= MAX_RQUAD){
         flush();
         rQuadCount = 0;
+
+        PBOX_WARN("RENDERER : Max Render Quad limit exceeded. Flushing now.....");
     }
 
     RenderQuad& rQuad = rQuadQueue[rQuadCount++];
@@ -315,16 +333,21 @@ void Renderer::draw(const TextureIMG* tex, Rect texsrc, Rect dest, Vect2 origin,
     }
 
     if (!added) {
-        // No suitable batch found? Create a new one!
-        RenderBatch newBatch(zIndex, useScreenSpace, clip, clipRegion);
-        newBatch.init(); // Setup VAO/VBO/EBO
-        newBatch.add(rQuad);
-        batches.push_back(std::move(newBatch));
+        if (batchCount >= batches.size()) {
+            flush();
+            clear();
+
+            PBOX_WARN("RENDERER : Max batch limit exceeded. Flushing now.....");
+        }
+
+        RenderBatch& newBatch = batches.at(batchCount++);
+        if(!newBatch.isActive()){
+            newBatch.activate(zIndex, useScreenSpace, clip, clipRegion);
+        }
         
-        // Sort batches by Z so we always draw back-to-front
-        std::sort(batches.begin(), batches.end(), [](const RenderBatch& a, const RenderBatch& b) {
-            return a.getZ() < b.getZ();
-        });
+        newBatch.add(rQuad);
+        added = true;
+        sortBatches = true;
     }
 }
 
@@ -383,12 +406,21 @@ void Renderer::drawText(const FontAtlas* font, const std::string& text, Vect2 po
 void Renderer::flush(){
     if (!activeShader || !activeCam) return;
 
-    rlDrawRenderBatchActive();
+    if(sortBatches){
+        std::stable_sort(batches.begin(), batches.begin() + batchCount, [](const RenderBatch& a, const RenderBatch& b) {
+            return a.getZ() < b.getZ();
+        });
+    }
 
-    for(int i = 0; i < batches.size(); ++i){
+    rlDrawRenderBatchActive();
+    
+    for(int i = 0; i < batchCount; ++i){
         RenderBatch& b = batches[i];
-        b.flush(activeShader, activeCam);
+        if(b.isActive()){
+            b.flush(activeShader, activeCam);
+        }
     }
 
     rQuadCount = 0;
+    sortBatches = false;
 }

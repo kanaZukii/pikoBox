@@ -617,7 +617,7 @@ void Scene::deserialize(const std::string& rawJson) {
     flushPostLoadJobs(); 
 }
 
-void Scene::clearDeadEnts() {
+void Scene::collectGarbageE() {
     if (removedEnts == 0) return;
 
     for (size_t i = 0; i < entities.size();) {
@@ -641,7 +641,7 @@ void Scene::clearDeadEnts() {
     }
 }
 
-void Scene::clearDeadComps() {
+void Scene::collectGarbageC() {
     if (removedComps == 0) return;
 
     for (size_t i = 0; i < components.size();) {
@@ -799,8 +799,8 @@ void SceneManager::updateScene(DeltaTime dt) {
 
         if (clearGarbageT >= 1.0f) {
             clearGarbageT = 0.0f;
-            currentScene->clearDeadComps();
-            currentScene->clearDeadEnts();
+            currentScene->collectGarbageC();
+            currentScene->collectGarbageE();
         }
 
         currentScene->update(dt.physics);

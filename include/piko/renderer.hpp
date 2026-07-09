@@ -40,6 +40,7 @@ namespace piko {
     class RenderBatch {
     public:
         ~RenderBatch();
+        RenderBatch(){textures.fill(nullptr);}
 
         RenderBatch(const RenderBatch&) = delete;
         RenderBatch& operator=(const RenderBatch&) = delete;
@@ -48,25 +49,33 @@ namespace piko {
         RenderBatch& operator=(RenderBatch&& other) noexcept;
 
         void init();
-        bool add(const RenderQuad& rQuad);
+        void activate (int zIndex, bool useScreenSpace, bool clip, Rect clipRegion);
+        void reset();
 
+        bool add(const RenderQuad& rQuad);
         void flush(const RenderShader* shader, Cam* camera);
 
-        const bool hasRoom() const{ return quadCount < MAX_QUADS;}
-        const bool hasRoomForTexture() const{ return texCount < MAX_TEXTURES;}
+        bool isActive() const { return active; }
+
+        int getQuadCount() const { return quadCount; }
+        int getTextCount() const { return texCount; }
+
+        bool hasRoom() const{ return quadCount < MAX_QUADS;}
+        bool hasRoomForTexture() const{ return texCount < MAX_TEXTURES;}
         
         int getZ() const { return zIndex; }
         bool isScreenSpaceMode() const {return useScreenSpace;}
         const Rect& getClipRegion() const{ return clipRegion;}
-        const bool hasClipping() const{ return doClipping;}
+        bool hasClipping() const{ return doClipping;}
 
     private:
-        RenderBatch(int zIndex, bool useScreenSpace, bool clip, Rect clipRegion);
         static constexpr int MAX_TEXTURES = 8;
         static constexpr int MAX_QUADS = 1000;
 
         static constexpr int VERTEX_SIZE = 10;
         static constexpr int VERTEX_SIZE_BYTES = VERTEX_SIZE * sizeof(float);
+
+        bool active = false;
 
         int texCount = 1;
         int quadCount = 0;
@@ -92,7 +101,6 @@ namespace piko {
         void loadVertexProperties(const RenderQuad& rQuad, Vertex* quadPtr, int texSlot);
 
         std::vector<uint32_t> generateIndices();
-        friend class Renderer;
     };
 
     class Renderer {
@@ -129,23 +137,32 @@ namespace piko {
                 );
         
         void flush();
+        void clear();
 
         void setCamera(Cam* camera) { activeCam = camera; }
         void setShader(const RenderShader* shader) { activeShader = shader; }
 
-    private:
+    protected:
         Renderer(){}
         void init();
         void terminate(){}
 
+        friend class Engine;
+        
+    private:
+        static constexpr int MAX_BATCHES = 128;
         static constexpr int MAX_RQUAD = 50000;
+        
         int rQuadCount = 0;
+        int batchCount = 0;
+
+        bool sortBatches = true;
+
         RenderQuad rQuadQueue[MAX_RQUAD];
-        std::vector<RenderBatch> batches;
+        std::array<RenderBatch, MAX_BATCHES> batches;
+
         Cam* activeCam = nullptr;
         const RenderShader* activeShader = nullptr;
-
-        friend class Engine;
     };
 }
 

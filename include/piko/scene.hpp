@@ -156,8 +156,8 @@ namespace piko {
             uint32_t removedComps = 0;
             uint32_t removedEnts = 0;
             
-            void clearDeadComps();
-            void clearDeadEnts();
+            void collectGarbageE();
+            void collectGarbageC();
 
             EventBroker* eventBroker = nullptr;
             InputManager* inputMAN = nullptr;
