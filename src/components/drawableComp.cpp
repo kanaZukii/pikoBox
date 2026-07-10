@@ -163,9 +163,9 @@ void SpriteRenderer::deserialize(const std::string& rawJson){
         
         int idx = spriteJson.value("index", -1);
         if(idx > -1){
-            sprite = owner->scene->getAssets()->getSpriteFromSheet(sheet, idx);
+            sprite = owner->scene->assets()->getSpriteFromSheet(sheet, idx);
         } else {
-            sprite = owner->scene->getAssets()->getTexSprite(sheet);
+            sprite = owner->scene->assets()->getTexSprite(sheet);
         }
     }
 }
@@ -223,7 +223,7 @@ void TextRenderer::deserialize(const std::string& rawJson) {
     font = nullptr;
     if(data.contains("fontPath")){
         std::string fontPath = data.value("fontPath", "");
-        font = owner->scene->getAssets()->get<FontAtlas>(fontPath);
+        font = owner->scene->assets()->get<FontAtlas>(fontPath);
     }
 
     text = data.value("text", "");

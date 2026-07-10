@@ -69,7 +69,7 @@ void PlayerMoveScript::onEarlyUpdate(float dt) {
     if (!pBody) return;
 
     // 2. Safely reach up to the Scene to get our decoupled Input Manager
-    InputManager* input = owner->scene->getInput();
+    InputManager* input = owner->scene->inputs();
     if (!input) return;
 
     // 3. Horizontal Input Loop via Action Mapping Names
@@ -174,7 +174,7 @@ void ButtonScript::setLabel(const std::string& newLabel) {
 }
 
 void ButtonScript::onEarlyUpdate(float dt) {
-    InputManager* input = owner->scene->getInput();
+    InputManager* input = owner->scene->inputs();
     if (!input) return;
 
     if(bgrenderer && !owner->scene->componentExist(bgId)){
@@ -337,19 +337,19 @@ void CameraMoveScript::setTarget(const std::string& targetname){
 }
 
 void CameraMoveScript::setCamPos(Vect2 position){
-    Cam* camera = owner->scene->getCamera();
+    Cam* camera = owner->scene->camera();
     if(!camera) return;
     camera->setPosition(position);
 }
 
 void CameraMoveScript::setCamOffset(Vect2 offset){
-    Cam* camera = owner->scene->getCamera();
+    Cam* camera = owner->scene->camera();
     if(!camera) return;
     camera->setOffset(offset);
 }
 
 void CameraMoveScript::onUpdate(float dt) {
-    Cam* camera = owner->scene->getCamera();
+    Cam* camera = owner->scene->camera();
     if(!camera) return;
 
     if(targetEntity && !owner->scene->entityExist(targetId)){
@@ -375,7 +375,7 @@ void CameraMoveScript::onUpdate(float dt) {
         camera->setPosition(newCamPos);
 
     } else if (mode == MODE::MANUAL) {
-        InputManager* input = owner->scene->getInput();
+        InputManager* input = owner->scene->inputs();
         if (!input) return;
 
         if (input->isActionDown("camera_move_up")) {

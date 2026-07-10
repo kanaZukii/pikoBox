@@ -86,10 +86,10 @@ namespace piko {
 
             void addPostLoadJob(std::function<void()> job) {postLoadJobs.push_back(job);}
 
-            InputManager* getInput() const { return inputMAN; }
-            AssetManager* getAssets() const { return assetMAN; }
-            AudioManager* getAudio() const { return audioMAN; }
-            Cam* getCamera() const { return sceneCam; }
+            InputManager* inputs() const { return inputMAN; }
+            AssetManager* assets() const { return assetMAN; }
+            AudioManager* audio() const { return audioMAN; }
+            Cam* camera() const { return sceneCam; }
 
             const std::vector<Collidable*>& getCollidables() const { return collidables; }
             const std::vector<PhysicsBody*>& getPhysicsBodies() const { return physicsBodies; }
@@ -336,13 +336,11 @@ namespace piko {
 
             bool isPaused() const { return isGamePaused; }
 
-        private:
+        protected:
             SceneManager(){}
 
             void init();
             void terminate();
-
-            void initRegistry();
 
             void setEventBroker(EventBroker* broker);
             void setInputManager(InputManager* input) { inputMAN = input; }
@@ -350,6 +348,8 @@ namespace piko {
             void setAudioManager(AudioManager* assets) { audioMAN = assets; }
             void setGameCamera(Cam* cam) { sceneCam = cam; }
 
+            friend class Engine;
+        private:
             std::unordered_map<std::string, std::unique_ptr<Scene>> scenes;
             std::unordered_map<std::string, ComponentFactoryFunc> registry;
 
@@ -371,6 +371,7 @@ namespace piko {
             AudioManager* audioMAN = nullptr;
             Cam* sceneCam = nullptr;
 
-            friend class Engine;
+            void initRegistry();
+
     };
 }

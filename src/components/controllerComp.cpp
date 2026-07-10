@@ -96,7 +96,7 @@ void AnimationPlayer::play(const std::string& name, bool loop){
     if (currentClip){
         if(currentClip->getName() == name && playing) return;
     }
-    currentClip = owner->scene->getAssets()->get<AnimationClip>(name);
+    currentClip = owner->scene->assets()->get<AnimationClip>(name);
     currentFrameIndex = 0;
     frameTimer = 0.0f;
     onLoop = loop;
@@ -169,21 +169,21 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
     currentClip = nullptr;
     if(data.contains("currentClip")){
         std::string clipName = data.value("currentClip", "");
-        currentClip = owner->scene->getAssets()->get<AnimationClip>(clipName);
+        currentClip = owner->scene->assets()->get<AnimationClip>(clipName);
     }
 }
 
 void AudioPlayer::play(const std::string& audio, bool loop, int channel, float startAt) {
-    const AudioClip* newAudio = owner->scene->getAssets()->get<AudioClip>(audio);
+    const AudioClip* newAudio = owner->scene->assets()->get<AudioClip>(audio);
     if(!newAudio) {stop(); currentClip = nullptr; return;}
 
     
     if (newAudio->getType() == AudioClip::AudioType::STREAM_MUSIC && newAudio != currentClip) {
         currentClip = newAudio;
         currentChannel = channel;
-        owner->scene->getAudio()->playClip(currentClip, loop, channel);
+        owner->scene->audio()->playClip(currentClip, loop, channel);
     } else if (newAudio->getType() == AudioClip::AudioType::STATIC_SFX) {
-        owner->scene->getAudio()->playClip(newAudio, loop, channel);
+        owner->scene->audio()->playClip(newAudio, loop, channel);
     }
 }
 
@@ -194,15 +194,15 @@ void AudioPlayer::play(const AudioClip* audio, bool loop, int channel, float sta
     if (audio->getType() == AudioClip::AudioType::STREAM_MUSIC && audio != currentClip) {
         currentClip = audio;
         currentChannel = channel;
-        owner->scene->getAudio()->playClip(currentClip, loop, channel);
+        owner->scene->audio()->playClip(currentClip, loop, channel);
     }else if (audio->getType() == AudioClip::AudioType::STATIC_SFX) {
-        owner->scene->getAudio()->playClip(audio, loop, channel);
+        owner->scene->audio()->playClip(audio, loop, channel);
     }
 }
 
 void AudioPlayer::stop() {
     if (currentClip) {
-        owner->scene->getAudio()->stopChannelStream(currentChannel);
+        owner->scene->audio()->stopChannelStream(currentChannel);
         currentClip = nullptr;
     }
 }
@@ -210,14 +210,14 @@ void AudioPlayer::stop() {
 void AudioPlayer::setVolumeModifier(float volume) {
     volumeMod = volume;
     if (currentClip) {
-        owner->scene->getAudio()->setChannelVolume(currentChannel, volume);
+        owner->scene->audio()->setChannelVolume(currentChannel, volume);
     }
 }
 
 bool AudioPlayer::isPlaying() const {
     if (!currentClip) return false;
 
-    return owner->scene->getAudio()->isChannelPlaying(currentChannel); 
+    return owner->scene->audio()->isChannelPlaying(currentChannel); 
 }
 
 std::string AudioPlayer::serialize(){
@@ -242,7 +242,7 @@ void AudioPlayer::deserialize(const std::string& rawJson) {
     currentClip = nullptr;
     if(data.contains("currentClip")){
         std::string audioPath = data.value("currentClip", "");
-        currentClip = owner->scene->getAssets()->getByPath<AudioClip>(audioPath);
+        currentClip = owner->scene->assets()->getByPath<AudioClip>(audioPath);
     }
 }
 

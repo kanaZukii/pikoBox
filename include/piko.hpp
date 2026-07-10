@@ -55,7 +55,7 @@ namespace piko {
             SceneManager& scenes() { return *sceneMAN.get(); }
             Renderer& renderer() { return *renderMAN.get(); }
             PhysicsEngine& physics() { return *physicsMAN.get(); }
-            InputManager& input() { return *inputMAN.get(); }
+            InputManager& inputs() { return *inputMAN.get(); }
             AudioManager& audio() { return *audioMAN.get(); }
             Cam& camera()   {return activeCam;}
 
