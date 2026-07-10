@@ -12,45 +12,106 @@ using json = nlohmann::json;
 using namespace piko;
 
 
-void AnimationPlayer::update(float dt){
+void AnimationPlayer::update(float dt) {
     if (!playing || !currentClip) return;
 
-    if(rendererPtr && !owner->scene->componentExist(rendererID)){
+    // 1. Safety check for the renderer
+    if (rendererPtr && !owner->scene->componentExist(rendererID)) {
         rendererPtr = nullptr;
         stop();
+        return;
+    }
+    if (!rendererPtr) return;
+
+    // 2. Accumulate global playback time
+    time += dt;
+
+    // 3. Handle Loop / Stop logic
+    if (time >= currentClip->getDuration()) {
+        if (onLoop) {
+            time = fmod(time, currentClip->getDuration());
+        } else {
+            time = currentClip->getDuration();
+            playing = false;
+        }
     }
 
-    // 1. Lazy-fallback to check if the target renderer string version was set
-    if (!rendererPtr || currentClip->getSize() <= 0) return; 
+    // 4. Update Tracks (Snap/Non-Interpolated version)
+    
+    // SPRITE TRACK
+    if (currentClip->spriteTrackSize() > 0) {
+        int idx = currentClip->findSpriteIndexAt(time);
+        if (idx != -1) {
+            const auto* key = currentClip->getSpriteKey((uint16_t)idx);
+            if (key) { rendererPtr->setSprite(key->sprite); }
+        }
+    }
 
-    // 2. Accumulate delta time
-    frameTimer += dt;
+    // TRANSFORM TRACK
+    if (currentClip->transformTrackSize() > 0) {
+        int idx = currentClip->findTransIndexAt(time);
+        
+        // We need the current key and the "next" key to lerp
+        const auto* currentKey = currentClip->getTransKey((uint16_t)idx);
+        
+        if (lerpTransform && idx + 1 < currentClip->transformTrackSize()) {
+            const auto* nextKey = currentClip->getTransKey((uint16_t)idx + 1);
+            
+            // Calculate the range of this segment
+            float segmentDuration = nextKey->time - currentKey->time;
+            float localTime = time - currentKey->time;
+            float alpha = (segmentDuration > 0.0f) ? (localTime / segmentDuration) : 1.0f;
 
-    // 3. Evaluate Frame Transitions
-    const auto& currentFrame = currentClip->getFrame(currentFrameIndex);
-    if (frameTimer >= currentFrame->duration) {
-        frameTimer -= currentFrame->duration;
-        currentFrameIndex++;
-
-        // Handle looping limits
-        if (currentFrameIndex >= currentClip->getSize()) {
-            if (onLoop) {
-                currentFrameIndex = 0;
-            } else {
-                currentFrameIndex = currentClip->getSize() - 1;
-                playing = false; // Halt playback
+            // Linear Interpolation
+            float x = currentKey->transform.x + alpha * (nextKey->transform.x - currentKey->transform.x);
+            float y = currentKey->transform.y + alpha * (nextKey->transform.y - currentKey->transform.y);
+            float w = currentKey->transform.w + alpha * (nextKey->transform.w - currentKey->transform.w);
+            float h = currentKey->transform.h + alpha * (nextKey->transform.h - currentKey->transform.h);
+            
+            rendererPtr->setOffset({x, y});
+            rendererPtr->setSize({w, h});
+        } else {
+            // Snap behavior (if not lerping, or if it's the very last frame)
+            if (currentKey) {
+                rendererPtr->setOffset({currentKey->transform.x, currentKey->transform.y});
+                rendererPtr->setSize({currentKey->transform.w, currentKey->transform.h});
             }
         }
     }
 
-    // 4. Update the Active Renderer Profile
-    const auto& activeFrame = currentClip->getFrame(currentFrameIndex);
-    if (activeFrame->sprite) {
-        // Assign the active frame's texture and source rect bounds
-        rendererPtr->setSprite(activeFrame->sprite);
+    // COLOR TRACK
+    if (currentClip->colorTrackSize() > 0) {
+        int idx = currentClip->findColorIndexAt(time);
         
-        // Pass the frame's origin offset down to the renderer's rendering origin!
-        rendererPtr->setOffset(activeFrame->offset);
+        // Get the current key
+        const auto* currentKey = currentClip->getColorKey((uint16_t)idx);
+        
+        if (lerpColor && idx + 1 < currentClip->colorTrackSize()) {
+            const auto* nextKey = currentClip->getColorKey((uint16_t)idx + 1);
+            
+            // Calculate segment alpha
+            float segmentDuration = nextKey->time - currentKey->time;
+            float localTime = time - currentKey->time;
+            float alpha = (segmentDuration > 0.0f) ? (localTime / segmentDuration) : 1.0f;
+            
+            // Apply Color LERP
+            Color4 frameColor;
+            auto lerpChannel = [&](uint8_t start, uint8_t end) -> uint8_t {
+                return static_cast<uint8_t>(start + alpha * (static_cast<float>(end) - start));
+            };
+            
+            frameColor.r = lerpChannel(currentKey->color.r, nextKey->color.r);
+            frameColor.g = lerpChannel(currentKey->color.g, nextKey->color.g);
+            frameColor.b = lerpChannel(currentKey->color.b, nextKey->color.b);
+            frameColor.a = lerpChannel(currentKey->color.a, nextKey->color.a);
+            
+            rendererPtr->setColor(frameColor);
+        } else {
+            // Snap behavior (if not lerping, or if it's the last frame)
+            if (currentKey) {
+                rendererPtr->setColor(currentKey->color);
+            }
+        }
     }
 }
 
@@ -74,15 +135,14 @@ void AnimationPlayer::setRenderer(const std::string& sprrenderer){
 }
 
 void AnimationPlayer::play(const AnimationClip* clip, bool loop){
-    if(!clip){stop(); currentClip = nullptr; return;}
+    if(!clip){currentClip = nullptr; stop(); return;}
 
     if (currentClip){
         if(currentClip->getName() == clip->getName() && playing) return;
     }
     
     currentClip = clip;
-    currentFrameIndex = 0;
-    frameTimer = 0.0f;
+    time = 0.0f;
     onLoop = loop;
 
     if(currentClip){
@@ -97,8 +157,7 @@ void AnimationPlayer::play(const std::string& name, bool loop){
         if(currentClip->getName() == name && playing) return;
     }
     currentClip = owner->scene->assets()->get<AnimationClip>(name);
-    currentFrameIndex = 0;
-    frameTimer = 0.0f;
+    time = 0.0f;
     onLoop = loop;
 
     if(currentClip){
@@ -110,8 +169,7 @@ void AnimationPlayer::play(const std::string& name, bool loop){
 
 void AnimationPlayer::stop(){
     playing = false;
-    currentFrameIndex = 0;
-    frameTimer = 0.0f;
+    time = 0.0f;
 }
 
 void AnimationPlayer::resume(){
@@ -131,10 +189,12 @@ std::string AnimationPlayer::getCurrentClipName() const {
 
 std::string AnimationPlayer::serialize(){
     json data = json::parse(Component::serialize());
-    data["currentFrameIndex"] = currentFrameIndex;
-    data["frameTimer"] = frameTimer;
+    data["time"] = time;
     data["playing"] = playing;
     data["onLoop"] = onLoop;
+
+    data["lerpTransform"] = lerpTransform;
+    data["lerpColor"] = lerpColor;
 
     if(rendererPtr){
         data["rendererPtr"] = rendererPtr->getAlias();
@@ -153,8 +213,10 @@ void AnimationPlayer::deserialize(const std::string& rawJson){
 
     playing = data.value("playing", false); 
     onLoop = data.value("onLoop", false); 
-    frameTimer = data.value("frameTimer", 0.0f);
-    currentFrameIndex = data.value("currentFrameIndex", 0);
+    time = data.value("time", 0.0f);
+    
+    lerpTransform = data.value("lerpTransform", false); 
+    lerpColor = data.value("lerpColor", false);
 
     rendererPtr = nullptr;
     if(data.contains("rendererPtr")){
@@ -243,427 +305,5 @@ void AudioPlayer::deserialize(const std::string& rawJson) {
     if(data.contains("currentClip")){
         std::string audioPath = data.value("currentClip", "");
         currentClip = owner->scene->assets()->getByPath<AudioClip>(audioPath);
-    }
-}
-
-void CompTransformAnimator::update(float dt){
-    if(targetC && !owner->scene->componentExist(targetID)) {
-        targetC = nullptr;
-        stop(); 
-    }
-
-    if (!targetC || !isPlaying || !currentClip || currentClip->keyframes.empty()) return;
-
-    const TransformFrame& frame = currentClip->keyframes[currentFrameIndex];
-    frameTimer += dt;
-
-    // Establish a completely stable layout origin baseline
-    Rect startTransform;
-    if (currentFrameIndex > 0) {
-        // Normal sequence: start from the previous keyframe's target destination
-        startTransform = currentClip->keyframes[currentFrameIndex - 1].target;
-    } else {
-        // Rollover sequence: if looping, smoothly interpolate from the absolute final frame target!
-        if (currentClip->loop && currentClip->keyframes.size() > 1) {
-            startTransform = currentClip->keyframes.back().target;
-        } else {
-            // Fallback for absolute first-run frame entry initialization step
-            startTransform = frame.target; 
-        }
-    }
-
-    // Compute Alpha Clamped Execution Threshold
-    float alpha = (frame.duration > 0.0f) ? (frameTimer / frame.duration) : 1.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
-
-    Rect frameTransform;
-    // Apply Linear Interpolation transformations predictably using the static boundary snapshots
-    frameTransform.x = startTransform.x + alpha * (frame.target.x - startTransform.x);
-    frameTransform.y = startTransform.y + alpha * (frame.target.y - startTransform.y);
-    frameTransform.w = startTransform.w + alpha * (frame.target.w - startTransform.w);
-    frameTransform.h = startTransform.h + alpha * (frame.target.h - startTransform.h);
-    
-    targetC->setOffset({frameTransform.x, frameTransform.y});
-    targetC->setSize({frameTransform.w, frameTransform.h});
-
-    // Handle frame sequence steps rollover updates conditions check logic blocks
-    if (frameTimer >= frame.duration) {
-        // Delta overflow tracking ensures time isn't lost on frame boundary drops
-        float overflowTime = (frame.duration > 0.0f) ? (frameTimer - frame.duration) : 0.0f;
-        frameTimer = overflowTime; 
-        currentFrameIndex++;
-
-        if (currentFrameIndex >= static_cast<int>(currentClip->keyframes.size())) {
-            if (currentClip->loop) {
-                currentFrameIndex = 0;
-            } else {
-                isPlaying = false;
-                currentFrameIndex = static_cast<int>(currentClip->keyframes.size()) - 1;
-                frameTimer = 0.0f;
-            }
-        }
-    }
-}
-
-void CompTransformAnimator::setTargetComponent(uint32_t c){
-    targetC = owner->scene->getComponent<Component>(c);
-    targetID = c;
-}
-
-void CompTransformAnimator::setTargetComponent(Component* c){
-    targetC = c;
-    if(targetC){
-        targetID = targetC->getID();
-    }
-}
-
-void CompTransformAnimator::addClip(const TransformClip& clip){
-    clips[clip.name] = clip;
-}
-
-void CompTransformAnimator::play(const std::string& name){
-    if (currentClip){
-        if(currentClip->name == name && isPlaying) return;
-    }
-
-    auto it = clips.find(name);
-    if (it != clips.end()) {
-        currentClip = &it->second;
-        currentFrameIndex = 0;
-        frameTimer = 0.0f;
-        isPlaying = true;
-    }
-}
-
-void CompTransformAnimator::stop(){
-    currentFrameIndex = 0;
-    frameTimer = 0.0f;
-    isPlaying = false;
-}
-
-void CompTransformAnimator::pause(){
-    isPlaying = false;
-}
-
-void CompTransformAnimator::resume(){
-    if(currentClip){isPlaying = true;}
-}
-
-std::string CompTransformAnimator::serialize(){
-    json data = json::parse(Component::serialize());
-    data["currentFrameIndex"] = currentFrameIndex;
-    data["frameTimer"] = frameTimer;
-    data["isPlaying"] = isPlaying;
-
-    if(currentClip){
-        data["currentClip"] = currentClip->name;
-    }
-
-    if(targetC){
-        data["targetC"] = targetC->getAlias();
-    }
-
-    if(!clips.empty()){
-        json serializedClips = json::object();
-        for(const auto& [key, val] : clips) serializedClips[key] = json::parse(serializeClip(val));
-        data["clips"] = serializedClips;
-    }
-    return data.dump();
-}
-
-void CompTransformAnimator::deserialize(const std::string& rawJson){
-    Component::deserialize(rawJson);
-    json data = json::parse(rawJson);
-
-    isPlaying = data.value("isPlaying", false); 
-    frameTimer = data.value("frameTimer", 0.0f);
-    currentFrameIndex = data.value("currentFrameIndex", 0);
-
-    if (data.contains("clips") && data["clips"].is_object()) {
-        this->clips.clear();
-
-        for (const auto& [clipName, clipData] : data["clips"].items()) {
-            std::string serializedClipState = clipData.dump();
-            this->clips[clipName] = deserializeClip(clipName, serializedClipState);
-        }
-    }
-
-    targetC = nullptr;
-    if(data.contains("targetC")){
-        std::string compStr = data.value("targetC", "");
-        owner->scene->addPostLoadJob([this, compStr]() {
-            this->setTargetComponent(
-                this->owner->scene->getComponent<Component>(this->owner->id, compStr)
-            );
-        });
-    }
-
-    currentClip = nullptr;
-    if(data.contains("currentClip")){
-        std::string clipName = data.value("currentClip", "");
-        auto it = this->clips.find(clipName);
-        if(it != this->clips.end()) {
-            currentClip = &(it->second);
-        }
-    }
-}
-
-std::string CompTransformAnimator::serializeClip(const TransformClip& clip){
-    json serializedKeyframes = json::array();
-    
-    for(const TransformFrame& f : clip.keyframes ){
-        json frameJson = {
-            {"duration", f.duration},
-            {"target", {
-                {"x", f.target.x}, {"y", f.target.y}, 
-                {"w", f.target.w}, {"h", f.target.h}
-            }}
-        };
-        serializedKeyframes.push_back(frameJson);
-    }
-    json data = {
-        {"loop", clip.loop},
-        {"keyframes", serializedKeyframes}
-    };
-    
-    return data.dump();
-}
-
-CompTransformAnimator::TransformClip CompTransformAnimator::deserializeClip(
-    const std::string& clipName, const std::string& rawJson){
-
-    json data = json::parse(rawJson);
-    
-    TransformClip clip;
-    clip.name = clipName;
-    clip.loop = data.value("loop", true);
-
-    if (data.contains("keyframes") && data["keyframes"].is_array()) {
-        for (const auto& frameJson : data["keyframes"]) {
-            TransformFrame keyframe;
-            
-            keyframe.duration = frameJson.value("duration", 0.2f);
-            
-            if (frameJson.contains("target")) {
-                keyframe.target.x = frameJson["target"].value("x", 0.0f);
-                keyframe.target.y = frameJson["target"].value("y", 0.0f);
-                keyframe.target.w = frameJson["target"].value("w", 0.0f);
-                keyframe.target.h = frameJson["target"].value("h", 0.0f);
-            }
-
-            clip.keyframes.push_back(keyframe);
-        }
-    }
-
-    return clip;
-}
-
-void DrawColorAnimator::update(float dt){
-    if(targetD && !owner->scene->componentExist(targetID)) {
-        targetD = nullptr;
-        stop(); 
-    }
-
-    if (!targetD || !isPlaying || !currentClip || currentClip->keyframes.empty()) return;
-     
-    const ColorFrame& frame = currentClip->keyframes[currentFrameIndex];
-    frameTimer += dt;
-
-    // Establish a completely stable color origin
-    Color4 startColor;
-    if (currentFrameIndex > 0) {
-        // Normal sequence: start from the previous keyframe's target color
-        startColor = currentClip->keyframes[currentFrameIndex - 1].target;
-    } else {
-        // Rollover sequence: if looping, smoothly interpolate from the absolute final color target!
-        if (currentClip->loop && currentClip->keyframes.size() > 1) {
-            startColor = currentClip->keyframes.back().target;
-        } else {
-            // Fallback for absolute first-run frame entry initialization step
-            startColor = frame.target; 
-        }
-    }
-
-    // Compute Alpha Clamped Execution Threshold
-    float alpha = (frame.duration > 0.0f) ? (frameTimer / frame.duration) : 1.0f;
-    if (alpha > 1.0f) alpha = 1.0f;
-
-    Color4 frameColor;
-    frameColor.r = static_cast<uint8_t>(startColor.r + alpha * (static_cast<float>(frame.target.r) - startColor.r));
-    frameColor.g = static_cast<uint8_t>(startColor.g + alpha * (static_cast<float>(frame.target.g) - startColor.g));
-    frameColor.b = static_cast<uint8_t>(startColor.b + alpha * (static_cast<float>(frame.target.b) - startColor.b));
-    frameColor.a = static_cast<uint8_t>(startColor.a + alpha * (static_cast<float>(frame.target.a) - startColor.a));
-    
-    targetD->setColor(frameColor);
-
-    // Handle frame sequence steps rollover updates conditions check logic blocks
-    if (frameTimer >= frame.duration) {
-        // Delta overflow tracking ensures time isn't lost on frame boundary drops
-        float overflowTime = (frame.duration > 0.0f) ? (frameTimer - frame.duration) : 0.0f;
-        frameTimer = overflowTime; 
-        currentFrameIndex++;
-
-        if (currentFrameIndex >= static_cast<int>(currentClip->keyframes.size())) {
-            if (currentClip->loop) {
-                currentFrameIndex = 0;
-            } else {
-                isPlaying = false;
-                currentFrameIndex = static_cast<int>(currentClip->keyframes.size()) - 1;
-                frameTimer = 0.0f;
-            }
-        }
-    }
-}
-
-void DrawColorAnimator::addClip(const ColorClip& clip){
-    clips[clip.name] = clip;
-}
-
-void DrawColorAnimator::play(const std::string& name){
-    if (currentClip){
-        if(currentClip->name == name && isPlaying) return;
-    }
-
-    auto it = clips.find(name);
-    if (it != clips.end()) {
-        currentClip = &it->second;
-        currentFrameIndex = 0;
-        frameTimer = 0.0f;
-        isPlaying = true;
-    }
-}
-
-void DrawColorAnimator::stop(){
-    currentFrameIndex = 0;
-    frameTimer = 0.0f;
-    isPlaying = false;
-}
-
-void DrawColorAnimator::pause(){
-    isPlaying = false;
-}
-
-void DrawColorAnimator::resume(){
-    if(currentClip){isPlaying = true;}
-}
-
-void DrawColorAnimator::setTargetDrawable(uint32_t d){
-    targetD = owner->scene->getComponent<Drawable>(d);
-    targetID = d;
-}
-
-void DrawColorAnimator::setTargetDrawable(Drawable* d){
-    targetD = d;
-    if(targetD){
-        targetID = targetD->getID();
-    }
-}
-
-std::string DrawColorAnimator::serializeClip(const ColorClip& clip){
-    json serializedKeyframes = json::array();
-    
-    for(const ColorFrame& f : clip.keyframes ){
-        json frameJson = {
-            {"duration", f.duration},
-            {"target", {
-                {"r", f.target.r}, {"g", f.target.g}, 
-                {"b", f.target.b}, {"a", f.target.a}
-            }}
-        };
-        serializedKeyframes.push_back(frameJson);
-    }
-    json data = {
-        {"loop", clip.loop},
-        {"keyframes", serializedKeyframes}
-    };
-    
-    return data.dump();
-}
-
-DrawColorAnimator::ColorClip DrawColorAnimator::deserializeClip(
-    const std::string& clipName, const std::string& rawJson){
-
-    json data = json::parse(rawJson);
-    
-    ColorClip clip;
-    clip.name = clipName;
-    clip.loop = data.value("loop", true);
-
-    if (data.contains("keyframes") && data["keyframes"].is_array()) {
-        for (const auto& frameJson : data["keyframes"]) {
-            ColorFrame keyframe;
-            
-            keyframe.duration = frameJson.value("duration", 0.2f);
-            
-            if (frameJson.contains("target")) {
-                keyframe.target.r = frameJson["target"].value("r", 0);
-                keyframe.target.g = frameJson["target"].value("g", 0);
-                keyframe.target.b = frameJson["target"].value("b", 0);
-                keyframe.target.a = frameJson["target"].value("a", 0);
-            }
-
-            clip.keyframes.push_back(keyframe);
-        }
-    }
-
-    return clip;
-}
-
-std::string DrawColorAnimator::serialize(){
-    json data = json::parse(Component::serialize());
-    data["currentFrameIndex"] = currentFrameIndex;
-    data["frameTimer"] = frameTimer;
-    data["isPlaying"] = isPlaying;
-
-    if(currentClip){
-        data["currentClip"] = currentClip->name;
-    }
-
-    if(targetD){
-        data["targetD"] = targetD->getAlias();
-    }
-
-    if(!clips.empty()){
-        json serializedClips = json::object();
-        for(const auto& [key, val] : clips) serializedClips[key] = json::parse(serializeClip(val));
-        data["clips"] = serializedClips;
-    }
-    return data.dump();
-}
-
-void DrawColorAnimator::deserialize(const std::string& rawJson){
-    Component::deserialize(rawJson);
-    json data = json::parse(rawJson);
-
-    isPlaying = data.value("isPlaying", false); 
-    frameTimer = data.value("frameTimer", 0.0f);
-    currentFrameIndex = data.value("currentFrameIndex", 0);
-
-    if (data.contains("clips") && data["clips"].is_object()) {
-        this->clips.clear();
-
-        for (const auto& [clipName, clipData] : data["clips"].items()) {
-            std::string serializedClipState = clipData.dump();
-            this->clips[clipName] = deserializeClip(clipName, serializedClipState);
-        }
-    }
-
-    targetD = nullptr;
-    if(data.contains("targetD")){
-        std::string compStr = data.value("targetD", "");
-        owner->scene->addPostLoadJob([this, compStr]() {
-            this->setTargetDrawable(
-                this->owner->scene->getComponent<Drawable>(this->owner->id, compStr)
-            );
-        });
-    }
-
-    currentClip = nullptr;
-    if(data.contains("currentClip")){
-        std::string clipName = data.value("currentClip", "");
-        auto it = this->clips.find(clipName);
-        if(it != this->clips.end()) {
-            currentClip = &(it->second);
-        }
     }
 }

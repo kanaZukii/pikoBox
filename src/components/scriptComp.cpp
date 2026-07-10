@@ -321,18 +321,29 @@ void CameraMoveScript::setTarget(const Entity* target) {
     targetEntity = target; 
     if(targetEntity){
         targetId = targetEntity->id;
+        mode = MODE::FOLLOW;
+    } else {
+        mode = MODE::MANUAL;
     }
 }
 
 void CameraMoveScript::setTarget(uint32_t id){
     targetEntity = owner->scene->getEntity(id);
     targetId = id;
+    if(targetEntity){
+        mode = MODE::FOLLOW;
+    } else {
+        mode = MODE::MANUAL;
+    }
 }
 
 void CameraMoveScript::setTarget(const std::string& targetname){
     targetEntity = owner->scene->getEntity(targetname); 
     if(targetEntity){
         targetId = targetEntity->id;
+        mode = MODE::FOLLOW;
+    } else {
+        mode = MODE::MANUAL;
     }
 }
 
@@ -354,6 +365,7 @@ void CameraMoveScript::onUpdate(float dt) {
 
     if(targetEntity && !owner->scene->entityExist(targetId)){
         targetEntity = nullptr;
+        if(mode == MODE::FOLLOW){ mode = MODE::MANUAL;}
     }
 
     Vect2 currentCamPos = camera->getPosition();

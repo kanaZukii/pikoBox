@@ -41,10 +41,24 @@ namespace piko {
             const RenderShader* addShader(std::string key, std::string verPath, std::string fragPath);
             const RenderShader* addShaderFromMemory(std::string key, std::string verPath, std::string fragPath);
 
-            const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, Vect2 sprSize, int numSprs, int spacing=0, Vect2 startPos={0.0f}, int wrapX=0);
+            const SpriteSheet* addSpriteSheet(
+                std::string key, 
+                const TextureIMG* tex, 
+                Vect2 sprSize, 
+                int numSprs, 
+                int spacing=0, 
+                Vect2 startPos={0.0f}, 
+                int wrapX=0
+            )
+            ;
             const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, const std::vector<Rect>& sources);
 
-            const AnimationClip* addAnimationClip(std::string key, const std::vector<AnimationFrame>& frames);
+            const AnimationClip* addAnimationClip(
+                std::string key, 
+                const std::vector<SpriteKey>& sprKey, 
+                const std::vector<TransformKey>& tranKey, 
+                const std::vector<ColorKey>& colKey
+            );
 
             const Sprite* getTexSprite(std::string key);
             const Sprite* getTexSpriteByPath(std::string path);

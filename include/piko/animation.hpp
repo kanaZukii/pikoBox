@@ -7,71 +7,53 @@
 namespace piko{
     struct Sprite;
 
-    struct AnimationFrame {
+    struct SpriteKey {
         const Sprite* sprite = nullptr;
-        float duration = 0.2f;
-        Vect2 offset = {0.0f, 0.0f};
+        float time = 0.0f;
     };
+
+    struct TransformKey{
+        Rect transform = {0.0f, 0.0f, 0.0f, 0.0f};
+        float time = 0.0f;
+    };
+
+    struct ColorKey{
+        Color4 color = {0, 0, 0, 0};
+        float time = 0.0f;
+    };
+
 
     class AnimationClip{
     public:
-        AnimationClip(const std::vector<AnimationFrame>& frames, const std::string& name);
+        AnimationClip(
+            const std::string& name, 
+            const std::vector<SpriteKey>& sprKeys, 
+            const std::vector<TransformKey>& tranKeys, 
+            const std::vector<ColorKey>& colKeys
+        );
 
         const std::string& getName() const {return name;}
-        int getSize() const { return frames.size();}
         float getDuration() const { return duration; }
-        const AnimationFrame* getFrame(uint16_t index) const;
+
+        int findSpriteIndexAt(float time) const;
+        int findTransIndexAt(float time) const;
+        int findColorIndexAt(float time) const;
+
+        const SpriteKey* getSpriteKey(uint16_t index) const;
+        const TransformKey* getTransKey(uint16_t index) const;
+        const ColorKey* getColorKey(uint16_t index) const;
+
+        int spriteTrackSize() const { return sprKeys.size(); }
+        int transformTrackSize() const { return tranKeys.size(); }
+        int colorTrackSize() const { return colKeys.size(); }
 
         std::string serialize();
 
     private:
         std::string name;
         float duration = 0.0f;
-        std::vector<AnimationFrame> frames;
+        std::vector<SpriteKey> sprKeys;
+        std::vector<TransformKey> tranKeys; 
+        std::vector<ColorKey> colKeys;
     };
-
-    struct TransformFrame{
-        Rect target = {0.0f, 0.0f, 0.0f, 0.0f};
-        float duration = 0.2f;
-    };
-
-    class TransformClip{
-    public:
-        TransformClip(const std::vector<TransformFrame>& frames, const std::string& name);
-
-        const std::string& getName() const {return name;}
-        int getSize() const { return frames.size();}
-        float getDuration() const { return duration; }
-        const TransformFrame* getFrame(uint16_t index) const;
-
-        std::string serialize();
-
-    private:
-        std::string name = "";
-        float duration = 0.0f;
-        std::vector<TransformFrame> frames;
-    };
-
-    struct ColorFrame{
-        Color4 target = {0, 0, 0, 0};
-        float duration = 0.2f;
-    };
-
-    class ColorClip{
-    public:
-        ColorClip(const std::vector<ColorFrame>& frames, const std::string& name);
-
-        const std::string& getName() const {return name;}
-        int getSize() const { return frames.size();}
-        float getDuration() const { return duration; }
-        const ColorFrame* getFrame(uint16_t index) const;
-
-        std::string serialize();
-
-    private:
-        std::string name = "";
-        std::vector<ColorFrame> frames;
-        float duration = 0.0f;
-    };
-
 };

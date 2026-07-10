@@ -259,7 +259,13 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     }
 }
 
-const AnimationClip* AssetManager::addAnimationClip(std::string key, const std::vector<AnimationFrame>& frames){
+ const AnimationClip* AssetManager::addAnimationClip(
+                std::string key, 
+                const std::vector<SpriteKey>& sprKey, 
+                const std::vector<TransformKey>& tranKey, 
+                const std::vector<ColorKey>& colKey
+            )
+{
     auto anim_exist = animationClips.find(key);
     if (anim_exist != animationClips.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create animation clip '%s'. It already exist.", key.c_str());
@@ -271,7 +277,7 @@ const AnimationClip* AssetManager::addAnimationClip(std::string key, const std::
         auto [it, success] = animationClips.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(key),
-            std::forward_as_tuple(frames, key)
+            std::forward_as_tuple(key, sprKey, tranKey, colKey)
         );
 
         return &(it->second);

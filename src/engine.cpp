@@ -149,12 +149,6 @@ void Engine::drawScene(){
     EndBlendMode();
     EndTextureMode();
 
-    // BeginTextureMode(*drawLayer1);
-    // ClearBackground(BLANK);
-    // BeginBlendMode(BLEND_ALPHA);
-    // DrawFPS(5, 5);
-    // EndBlendMode();
-    // EndTextureMode();
     ClearBackground(BLACK);
 
     DrawTexturePro(
@@ -163,6 +157,10 @@ void Engine::drawScene(){
                     (float)-drawCanvas->texture.height},
         (Rectangle){0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
         (Vector2){0, 0}, 0.0f, WHITE);
+    
+    if(drawFPS){
+        DrawFPS(5, 5);
+    }
 }
 
 void Engine::drawEnd(){ 

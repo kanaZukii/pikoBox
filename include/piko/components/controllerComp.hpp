@@ -6,6 +6,7 @@ namespace piko {
    
     struct Sprite;
     class AnimationClip;
+    class TransformClip;
 
     class AudioClip;
     class SpriteRenderer;
@@ -22,6 +23,8 @@ namespace piko {
             void setRenderer(SpriteRenderer* renderer);
 
             void setLoop(bool loop){onLoop = loop;}
+            void setTransformLerp(bool enabled){lerpTransform = enabled;}
+            void setColorLerp(bool enabled){lerpColor = enabled;}
 
             void play(const std::string& name, bool loop=false);
             void play(const AnimationClip* animation, bool loop=false);
@@ -37,18 +40,24 @@ namespace piko {
          protected:
             AnimationPlayer() : Component() {className = "AnimationPlayer";}
 
+            friend class Scene;
+            friend class SceneManager;
+
+        private:
             const AnimationClip* currentClip = nullptr;
             
-            int currentFrameIndex = 0;
-            float frameTimer = 0.0f;
+            int currentSprIndex = 0;
+            int currentTransIndex = 0;
+            int currentColorIndex = 0;
+            float time = 0.0f;
+
             bool playing = false;
             bool onLoop = false;
+            bool lerpTransform = false;
+            bool lerpColor = false;
             
             uint32_t rendererID = 0;
             SpriteRenderer* rendererPtr = nullptr;
-
-            friend class Scene;
-            friend class SceneManager;
     };
 
     class AudioPlayer : public Component {
@@ -82,115 +91,5 @@ namespace piko {
             const AudioClip* currentClip = nullptr;
             int currentChannel = 0;
             float volumeMod = 1.0f;
-    };
-
-    class CompTransformAnimator : public Component{
-        public: 
-            struct TransformFrame{
-                Rect target = {0.0f, 0.0f, 0.0f, 0.0f};
-                float duration = 0.2f;
-            };
-
-            struct TransformClip{
-                std::string name = "";
-                std::vector<TransformFrame> keyframes;
-                bool loop = false;
-            };
-
-            void init() override {}
-
-            void update(float dt) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
-
-            void setTargetComponent(uint32_t c);
-            void setTargetComponent(Component* c);
-
-            void addClip(const TransformClip& clip);
-            void play(const std::string& name);
-            void stop();
-            void pause();
-            void resume();
-
-            inline std::string getCurrentClipName() const {
-                if(currentClip) {return currentClip->name;}
-                return "";
-            }
-            bool getIsPlaying() const {return isPlaying;}
-
-        protected:
-            CompTransformAnimator() : Component() {className = "CompTransformAnimator";}   
-
-            friend class Scene;
-            friend class SceneManager;
-        private:
-            std::unordered_map<std::string, TransformClip> clips;
-
-            const TransformClip* currentClip = nullptr;
-            int currentFrameIndex = 0;
-            float frameTimer = 0.0f;
-            bool isPlaying = false;
-
-            uint32_t targetID = 0;
-            Component* targetC = nullptr;
-
-            std::string serializeClip(const TransformClip& clip);
-            TransformClip deserializeClip(const std::string& clipName, const std::string& rawJson);
-    };
-
-    class DrawColorAnimator : public Component{
-        public: 
-            struct ColorFrame{
-                Color4 target = {0, 0, 0, 0};
-                float duration = 0.2f;
-            };
-
-            struct ColorClip{
-                std::string name = "";
-                std::vector<ColorFrame> keyframes;
-                bool loop = false;
-            };
-
-            void init() override {}
-
-            void update(float dt) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
-
-            void setTargetDrawable(uint32_t d);
-            void setTargetDrawable(Drawable* d);
-
-            void addClip(const ColorClip& clip);
-            void play(const std::string& name);
-            void stop();
-            void pause();
-            void resume();
-
-            inline std::string getCurrentClipName() const {
-                if(currentClip) {return currentClip->name;}
-                return "";
-            }
-            bool getIsPlaying() const {return isPlaying;}
-
-        protected:
-            DrawColorAnimator() : Component() {className = "DrawColorAnimator";}   
-
-            friend class Scene;
-            friend class SceneManager;
-        private:
-            std::unordered_map<std::string, ColorClip> clips;
-
-            const ColorClip* currentClip = nullptr;
-            int currentFrameIndex = 0;
-            float frameTimer = 0.0f;
-            bool isPlaying = false;
-
-            uint32_t targetID = 0;
-            Drawable* targetD = nullptr;
-
-            std::string serializeClip(const ColorClip& clip);
-            ColorClip deserializeClip(const std::string& clipName, const std::string& rawJson);
     };
 }

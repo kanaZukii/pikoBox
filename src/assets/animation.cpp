@@ -7,103 +7,89 @@
 using json = nlohmann::json;
 using namespace piko;
 
-AnimationClip::AnimationClip(const std::vector<AnimationFrame>& frames, const std::string& name){
-    if (frames.empty()) throw std::runtime_error("Cannot create an AnimationClip with no frames.");
-    this->frames = frames;
-    this->name = name;
-    for(const AnimationFrame& frame : this->frames){
-        duration += frame.duration;
-    }
+#include <algorithm> // Required for std::stable_sort
+
+AnimationClip::AnimationClip( 
+    const std::string& name, 
+    const std::vector<SpriteKey>& sprKeys, 
+    const std::vector<TransformKey>& tranKeys, 
+    const std::vector<ColorKey>& colKeys
+) : name(name), sprKeys(sprKeys), tranKeys(tranKeys), colKeys(colKeys) 
+{
+    if (this->sprKeys.empty() && this->tranKeys.empty() && this->colKeys.empty()) 
+        throw std::runtime_error("Cannot create an AnimationClip with no keyframes.");
+
+    // 1. Sort all tracks by time
+    std::stable_sort(this->sprKeys.begin(), this->sprKeys.end(), [](const SpriteKey& a, const SpriteKey& b) {
+        return a.time < b.time;
+    });
+    std::stable_sort(this->tranKeys.begin(), this->tranKeys.end(), [](const TransformKey& a, const TransformKey& b) {
+        return a.time < b.time;
+    });
+    std::stable_sort(this->colKeys.begin(), this->colKeys.end(), [](const ColorKey& a, const ColorKey& b) {
+        return a.time < b.time;
+    });
+
+    // 2. Determine duration as the max time found across all tracks
+    float maxTime = 0.0f;
+    if (!this->sprKeys.empty()) maxTime = std::max(maxTime, this->sprKeys.back().time);
+    if (!this->tranKeys.empty()) maxTime = std::max(maxTime, this->tranKeys.back().time);
+    if (!this->colKeys.empty()) maxTime = std::max(maxTime, this->colKeys.back().time);
+    
+    this->duration = maxTime;
 }
 
-const AnimationFrame* AnimationClip::getFrame(uint16_t index) const { 
-    return (index < frames.size()) ? &frames[index] : nullptr; 
+int AnimationClip::findSpriteIndexAt(float time) const {
+    if (sprKeys.empty()) return -1;
+    
+    int index = 0;
+    for (int i = 0; i < sprKeys.size(); ++i) {
+        if (time >= sprKeys[i].time) index = i;
+        else break;
+    }
+    return index;
+}
+
+int AnimationClip::findTransIndexAt( float time) const {
+    if (tranKeys.empty()) return -1;
+    
+    int index = 0;
+    for (int i = 0; i < tranKeys.size(); ++i) {
+        if (time >= tranKeys[i].time) index = i;
+        else break;
+    }
+    return index;
+}
+
+int AnimationClip::findColorIndexAt(float time) const {
+    if (colKeys.empty()) return -1;
+    
+    int index = 0;
+    for (int i = 0; i < colKeys.size(); ++i) {
+        if (time >= colKeys[i].time) index = i;
+        else break;
+    }
+    return index;
+}
+
+const SpriteKey* AnimationClip::getSpriteKey(uint16_t index) const{
+    if(index >= sprKeys.size()){ return nullptr;}
+    return &sprKeys[index];
+}
+
+const TransformKey* AnimationClip::getTransKey(uint16_t index) const{
+    if(index >= tranKeys.size()){ return nullptr;}
+    return &tranKeys[index];
+}
+
+const ColorKey* AnimationClip::getColorKey(uint16_t index) const{
+    if(index >= colKeys.size()){ return nullptr;}
+    return &colKeys[index];
 }
 
 std::string AnimationClip::serialize(){
     json serializedFrames = json::array();
     
-    for(const AnimationFrame& f : frames ){
-        json frameJson = {
-            {"duration", f.duration},
-            {"offset", {{"x", f.offset.x}, {"y", f.offset.y}}}
-        };
-        
-        if(f.sprite){
-            json spriteJson = {
-                {"sheet", f.sprite->sheet}
-            };
-            if(f.sprite->index > -1) {
-                spriteJson["index"] = f.sprite->index;
-            }
-            frameJson["sprite"] = spriteJson;
-        }
-        
-        serializedFrames.push_back(frameJson);
-    }
-    json data = {
-        {"frames", serializedFrames}
-    };
-    
-    return data.dump();
-}
-
-TransformClip::TransformClip(const std::vector<TransformFrame>& frames, const std::string& name){
-    if (frames.empty()) throw std::runtime_error("Cannot create an TransformClip with no frames.");
-    this->frames = frames;
-    this->name = name;
-    for(const TransformFrame& frame : this->frames){
-        duration += frame.duration;
-    }
-}
-
-const TransformFrame* TransformClip::getFrame(uint16_t index) const{
-    return (index < frames.size()) ? &frames[index] : nullptr; 
-}
-
-std::string TransformClip::serialize(){
-    json serializedFrames = json::array();
-    
-    for(const TransformFrame& f : frames ){
-        json frameJson = {
-            {"duration", f.duration},
-            {"target", {{"x", f.target.x}, {"y", f.target.y}, {"w", f.target.w}, {"h", f.target.h}}}
-        };
-        
-        serializedFrames.push_back(frameJson);
-    }
-    json data = {
-        {"frames", serializedFrames}
-    };
-    
-    return data.dump();
-}
-
-ColorClip::ColorClip(const std::vector<ColorFrame>& frames, const std::string& name){
-    if (frames.empty()) throw std::runtime_error("Cannot create an ColorFrame with no frames.");
-    this->frames = frames;
-    this->name = name;
-    for(const ColorFrame& frame : this->frames){
-        duration += frame.duration;
-    }
-}
-
-
-const ColorFrame* ColorClip::getFrame(uint16_t index) const {
-    return (index < frames.size()) ? &frames[index] : nullptr; 
-}
-
-std::string ColorClip::serialize(){
-    json serializedFrames = json::array();
-    
-    for(const ColorFrame& f : frames){
-         json frameJson = {
-            {"duration", f.duration},
-            {"target", {{"r", f.target.r}, {"g", f.target.g}, {"b", f.target.b}, {"a", f.target.a}}}
-        };
-        
-        serializedFrames.push_back(frameJson);
-    }
     json data = {
         {"frames", serializedFrames}
     };

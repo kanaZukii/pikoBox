@@ -36,6 +36,7 @@ namespace piko {
             void setFullScreen(bool fullscreen);
 
             void setTitle(const char* title);
+            void showFPS(bool enabled){ drawFPS = enabled;}
             
             bool shouldCloseWindow();
 
@@ -68,6 +69,7 @@ namespace piko {
             std::unique_ptr<SceneManager> sceneMAN;
             
             bool exitWindow = false;
+            bool drawFPS = false;
 
             RenderTexture2D* drawCanvas = nullptr;
 
