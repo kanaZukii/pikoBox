@@ -88,10 +88,48 @@ const ColorKey* AnimationClip::getColorKey(uint16_t index) const{
 }
 
 std::string AnimationClip::serialize(){
-    json serializedFrames = json::array();
+    json sJSON = json::array();
+    json tJSON = json::array();
+    json cJSON = json::array();
+
+    for(const SpriteKey& key : sprKeys){
+        
+        std::string sprName = key.sprite ? key.sprite->sheet : "";
+        int sprIndex = key.sprite ? key.sprite->index : 0;
+
+        sJSON.push_back(
+            {
+                {"sprite", {{"sheet", sprName}, {"index", sprIndex}}},
+                {"time", key.time}
+            }
+        );
+    }
+
+    for(const TransformKey& key : tranKeys){
+        const Rect& t = key.transform;
+        tJSON.push_back(
+            {
+                {"transform",{{"x", t.x}, {"y", t.y}, {"w", t.w}, {"h", t.h}}},
+                {"time", key.time}
+            }
+        );
+    }
+
+    for(const ColorKey& key : colKeys){
+        const Color4& c = key.color;
+        cJSON.push_back(
+            {
+                {"color", {{"r", c.r},{"g", c.g},{"b", c.b},{"a", c.a}}},
+                {"time", key.time}
+            }
+        );
+    }
     
     json data = {
-        {"frames", serializedFrames}
+        {"sprKeys", sJSON},
+        {"tranKeys", tJSON},
+        {"colKeys", cJSON},
+        {"name", name}
     };
     
     return data.dump();

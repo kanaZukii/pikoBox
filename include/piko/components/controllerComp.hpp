@@ -46,9 +46,6 @@ namespace piko {
         private:
             const AnimationClip* currentClip = nullptr;
             
-            int currentSprIndex = 0;
-            int currentTransIndex = 0;
-            int currentColorIndex = 0;
             float time = 0.0f;
 
             bool playing = false;

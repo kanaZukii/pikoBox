@@ -56,16 +56,21 @@ namespace piko {
 
     class SpriteSheet{
         public:
-            SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& sheet="");
+            SpriteSheet(const std::string& name, const TextureIMG* tex, const std::vector<Rect>& sources);
+            
             const Sprite* getSprite(uint16_t index) const;
 
             inline uint16_t getSize() const noexcept { return static_cast<uint16_t>(sprites.size()); }
             inline const std::vector<Rect>& getSources() const noexcept { return sources; }
             inline const TextureIMG* getTexAtlas () const noexcept { return texAtlas; }
+            inline const std::string& getName() const noexcept { return name; }
+
+            std::string serialize();
 
         private:
             const TextureIMG* texAtlas;
             const std::vector<Rect> sources;
             std::vector<Sprite> sprites;
+            std::string name = "";
     };
 }

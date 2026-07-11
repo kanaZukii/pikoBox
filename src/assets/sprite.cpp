@@ -1,9 +1,11 @@
 #include "piko/sprite.hpp"
 
 #include "raylib.h"
+#include "json.hpp"
 
 #include <filesystem>
 
+using json = nlohmann::json;
 using namespace piko;
 
 TextureIMG::TextureIMG(const std::string& filepath){
@@ -97,7 +99,7 @@ unsigned int TextureIMG::getOpenGLID() const {
 }
 
 
-SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources, const std::string& sheet) : sources(sources) {
+SpriteSheet::SpriteSheet(const std::string& name, const TextureIMG* tex, const std::vector<Rect>& sources) : sources(sources), name(name) {
     texAtlas = tex;
     if (!texAtlas) throw std::runtime_error("Texture Atlas is NULLPTR");
     if (texAtlas->getData().id == 0) throw std::runtime_error("Texture Atlas is MALFORMED");
@@ -117,11 +119,28 @@ SpriteSheet::SpriteSheet(const TextureIMG* tex, const std::vector<Rect>& sources
             continue; 
         }
 
-        sprites.push_back({texAtlas, src, sheet, index++});
+        sprites.push_back({texAtlas, src, name, index++});
     }
 }
 
 const Sprite* SpriteSheet::getSprite(uint16_t index) const {
     if(index >= sprites.size()){TraceLog(LOG_ERROR, "SPRSHEET: sheet size: '%d', cannot get sprite at index: '%d'.", sprites.size(), index); return nullptr;}
     return &sprites[index];
+}
+
+std::string SpriteSheet::serialize(){
+    json srcJSON = json::array();
+    for(const Rect& r : sources){
+        srcJSON.push_back(
+            {{"x", r.x},{"y", r.y},{"w", r.w},{"h", r.h}}
+        );
+    }
+
+    json data = {
+        {"texAtlas", texAtlas->getFilePath()},
+        {"sources", srcJSON},
+        {"name", name}
+    };
+
+    return data.dump();
 }

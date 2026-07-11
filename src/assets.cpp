@@ -227,7 +227,7 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
         auto [it, success] = spriteSheets.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(key),
-            std::forward_as_tuple(tex, sources, key)
+            std::forward_as_tuple(key, tex, sources)
         );
 
         return &(it->second);
@@ -249,7 +249,7 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
         auto [it, success] = spriteSheets.emplace(
             std::piecewise_construct,
             std::forward_as_tuple(key),
-            std::forward_as_tuple(tex, sources, key)
+            std::forward_as_tuple(key, tex, sources)
         );
 
         return &(it->second);
@@ -429,22 +429,16 @@ std::string AssetManager::serialize() {
 
     // 5. SpriteSheet Packing Layouts (Depends on Texture Keys)
     json sheetMap = json::object();
-    for (const auto& [key, sheet] : spriteSheets) {
-        json sprSrcs = json::array();
-        const std::vector<Rect>& sources = sheet.getSources();
-        for(const Rect& r : sources){
-            sprSrcs.push_back(
-                {{"x", r.x},{"y", r.y},{"w", r.w},{"h", r.h}}
-            );
-        }
-
-        json sheetData = {
-            {"texturePath", sheet.getTexAtlas()->getFilePath()},
-            {"sprSources", sprSrcs}
-        };
-        sheetMap[key] = sheetData;
+    for (auto& [key, sheet] : spriteSheets) {
+        sheetMap[key] = json::parse(sheet.serialize());
     }
     data["spriteSheets"] = sheetMap;
+
+    json animationMap = json::object();
+    for(auto& [key, clip] : animationClips){
+        animationMap[key] = json::parse(clip.serialize());
+    }
+    data["animationClips"] = animationMap;
 
     return data.dump(4);
 }
@@ -500,16 +494,16 @@ void AssetManager::deserialize(const std::string& rawJson) {
 
     if (data.contains("spriteSheets") && data["spriteSheets"].is_object()) {
         for (const auto& [key, sheetData] : data["spriteSheets"].items()) {
-            std::string texPath = sheetData.value("texturePath", "");
+            std::string texPath = sheetData.value("texAtlas", "");
             
             // Look up the matching texture address via its disk path token
             const TextureIMG* tex = this->getByPath<TextureIMG>(texPath);
 
-            if (tex != nullptr && sheetData.contains("sprSources") && sheetData["sprSources"].is_array()) {
+            if (tex != nullptr && sheetData.contains("sources") && sheetData["sources"].is_array()) {
                 std::vector<Rect> parsedSources;
                 
                 // Parse out every individual variable coordinate bounding box
-                for (const auto& rectJson : sheetData["sprSources"]) {
+                for (const auto& rectJson : sheetData["sources"]) {
                     Rect r;
                     r.x = rectJson.value("x", 0.0f);
                     r.y = rectJson.value("y", 0.0f);
@@ -528,6 +522,72 @@ void AssetManager::deserialize(const std::string& rawJson) {
             }
         }
         PBOX_INFO("ASSET_MAN: Successfully deserialized spritesheet assets to runtime." );
+    }
+
+    if (data.contains("animationClips") && data["animationClips"].is_object()) {
+        for (const auto& [key, animData] : data["animationClips"].items()) {
+          
+            std::vector<SpriteKey> sprKeys = {};
+            std::vector<TransformKey> tranKeys = {};
+            std::vector<ColorKey> colKeys = {};
+
+            if (animData.contains("sprKeys") && animData["sprKeys"].is_array()) {
+                for (const auto& sJson : animData["sprKeys"]) {
+                    float t = sJson.value("time", 0.0f);
+                    const Sprite* spr = nullptr;
+                    if(sJson.contains("sprite") && sJson["sprite"].is_object()){
+                        const json& sprJSON = sJson["sprite"];
+                        std::string sheet = sprJSON.value("sheet", "");
+                        int index = sprJSON.value("index", 0);
+                        spr = getSpriteFromSheet(sheet, index);
+                    }
+                    sprKeys.push_back({spr, t});
+                }
+                
+            }
+
+            if (animData.contains("tranKeys") && animData["tranKeys"].is_array()) {
+                for (const auto& tJson : animData["tranKeys"]) {
+                    float t = tJson.value("time", 0.0f);
+                    Rect tansform = {0.0f, 0.0f, 0.0f, 0.0f};
+                    if(tJson.contains("transform") && tJson["transform"].is_object()){
+                        const json& tranJSON = tJson["transform"];
+                        tansform.x = tranJSON.value("x", 0.0f);
+                        tansform.y = tranJSON.value("y", 0.0f);
+                        tansform.w = tranJSON.value("w", 0.0f);
+                        tansform.h = tranJSON.value("h", 0.0f);
+                    }
+                    tranKeys.push_back({tansform, t});
+                }
+                
+            }
+
+            if (animData.contains("colKeys") && animData["colKeys"].is_array()) {
+                for (const auto& cJson : animData["colKeys"]) {
+                    float t = cJson.value("time", 0.0f);
+                    Color4 color = {255, 255, 255, 255};
+                    if(cJson.contains("color") && cJson["color"].is_object()){
+                        const json& colJSON = cJson["color"];
+                        color.r = colJSON.value("r", static_cast<uint8_t>(255));
+                        color.g = colJSON.value("g", static_cast<uint8_t>(255));
+                        color.b = colJSON.value("b", static_cast<uint8_t>(255));
+                        color.a = colJSON.value("a", static_cast<uint8_t>(255));
+                    }
+                    colKeys.push_back({color, t});
+                }
+                
+            }
+
+            if(sprKeys.empty() && tranKeys.empty() && colKeys.empty()){
+                PBOX_ERROR(
+                    "ASSET_MAN: Deserialization... animation clip '%s' do not have any key frames. Skipping...", 
+                    key.c_str()
+                );
+                continue;
+            }
+            this->addAnimationClip(key, sprKeys, tranKeys, colKeys);
+        }
+        PBOX_INFO("ASSET_MAN: Successfully deserialized animation assets to runtime." );
     }
 
     PBOX_INFO("ASSET_MAN: Successfully deserialized all assets to runtime." );
