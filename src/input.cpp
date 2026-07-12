@@ -124,26 +124,23 @@ void InputManager::update() {
     Vector2 rawPos = GetMousePosition();
     Vector2 delta = GetMouseDelta();
 
-    // 1. Fetch physical OS window metrics
-    float screenW = (float)GetScreenWidth();
-    float screenH = (float)GetScreenHeight();
-
-    // 2. Fetch your internal design canvas metrics (1920 x 1080)
+    // 1. Fetch your design metrics
     float canvasW = (float)Global::GetVar().canvasWidth;
     float canvasH = (float)Global::GetVar().canvasHeight;
 
-    // 3. Map window space coordinates cleanly into canvas asset space!
-    if (screenW > 0 && screenH > 0) {
-        mouse.x = rawPos.x * (canvasW / screenW);
-        mouse.y = rawPos.y * (canvasH / screenH);
-        
-        // Scale deltas as well to keep mouse gestures accurate
-        mouse.deltaX = delta.x * (canvasW / screenW);
-        mouse.deltaY = delta.y * (canvasH / screenH);
-    } else {
-        mouse.x = rawPos.x;
-        mouse.y = rawPos.y;
-        mouse.deltaX = delta.x;
-        mouse.deltaY = delta.y;
-    }
+    // 2. Fetch window metrics
+    float screenW = (float)GetScreenWidth();
+    float screenH = (float)GetScreenHeight();
+
+    // 3. Compute scaling factor based on keeping aspect ratio intact
+    // This mirrors how Raylib fits its internal RenderTexture on screen
+    float scale = std::min(screenW / canvasW, screenH / canvasH);
+
+    // 4. Map coordinates cleanly by subtracting the black bar margins
+    mouse.x = (rawPos.x - (screenW - (canvasW * scale)) * 0.5f) / scale;
+    mouse.y = (rawPos.y - (screenH - (canvasH * scale)) * 0.5f) / scale;
+
+    // Scale deltas uniformly
+    mouse.deltaX = delta.x / scale;
+    mouse.deltaY = delta.y / scale;
 }

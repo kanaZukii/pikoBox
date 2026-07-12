@@ -59,13 +59,18 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     
     PBOX_INFO("SETTING CAMERA........");
     activeCam.setOffset({GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f});
-    
-    PBOX_INFO("SETTING SHADER TO 'default'.");
-    activeShader = assetMAN->addShaderFromMemory("default", DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER);
+    #ifdef __EMSCRIPTEN__
+        PBOX_INFO("SETTING SHADER TO 'default' (WebGL2 GLES).");
+        // WebGL 2 requires '#version 300 es' which you will supply via your fallback strings
+        activeShader = assetMAN->addShaderFromMemory("default_web", DEFAULT_WEBGL_VERTEX_SHADER, DEFAULT_WEBGL_FRAGMENT_SHADER);
+    #else
+        PBOX_INFO("SETTING SHADER TO 'default' (Desktop GL).");
+        activeShader = assetMAN->addShaderFromMemory("default", DEFAULT_VERTEX_SHADER, DEFAULT_FRAGMENT_SHADER);
+    #endif
     
     renderMAN->init();
     renderMAN->setCamera(&activeCam);
-    renderMAN->setShader(assetMAN->get<RenderShader>("default"));
+    renderMAN->setShader(activeShader);
     
     sceneMAN->init();
     sceneMAN->setEventBroker(&eventBroker);
@@ -168,7 +173,11 @@ void Engine::drawEnd(){
 }
 
 bool Engine::shouldCloseWindow(){
-    return exitWindow || WindowShouldClose();
+    #ifdef __EMSCRIPTEN__
+        return exitWindow; 
+    #else
+        return exitWindow || WindowShouldClose();
+    #endif
 }
 
 void Engine::setDrawCanvasSize(int width, int height) {

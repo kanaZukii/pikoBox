@@ -5,6 +5,8 @@
 #include "piko/sprite.hpp"
 #include "piko/font.hpp"
 
+#include <sstream>
+
 #include "json.hpp"
 
 using json = nlohmann::json;
@@ -223,7 +225,7 @@ void TextRenderer::deserialize(const std::string& rawJson) {
     font = nullptr;
     if(data.contains("fontPath")){
         std::string fontPath = data.value("fontPath", "");
-        font = owner->scene->assets()->get<FontAtlas>(fontPath);
+        font = owner->scene->assets()->getByPath<FontAtlas>(fontPath);
     }
 
     text = data.value("text", "");

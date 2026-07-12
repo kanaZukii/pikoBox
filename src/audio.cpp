@@ -7,14 +7,13 @@
 #include <iostream>
 #include <utility>
 #include <algorithm>
-#include <filesystem>
 
 using namespace piko;
 
 AudioClip::AudioClip(const std::string& filepath, AudioType type)
     : path(filepath), type(type) {
 
-    if (!std::filesystem::exists(filepath)) {
+    if (!FileExists(filepath.c_str())) {
         throw std::runtime_error("AUDIOCLIP: File does not exist: " + filepath);
     }
     
@@ -202,6 +201,22 @@ void AudioManager::update() {
                     SeekMusicStream(*stream.streamRef, stream.loopStart);
                 }
             }
+            #ifdef __EMSCRIPTEN__
+                // On web, if a frame lag spike occurs, don't immediately force-restart the audio
+                // stream if Raylib's Web Audio layer is just waiting for the next buffer cycle.
+                if (stream.streamRef->looping && !IsMusicStreamPlaying(*stream.streamRef)) {
+                    // Only restart if it has genuinely stopped entirely beyond a thread stall
+                    PlayMusicStream(*stream.streamRef);
+                }
+            #else 
+                // For desktop platforms
+                if (stream.streamRef->looping && IsMusicStreamPlaying(*stream.streamRef) == false) {
+                    PlayMusicStream(*stream.streamRef);
+                    if (stream.loopStart > 0.0f) {
+                        SeekMusicStream(*stream.streamRef, stream.loopStart);
+                    }
+                }
+            #endif
         }
     }
 }

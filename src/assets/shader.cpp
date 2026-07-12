@@ -3,8 +3,6 @@
 
 #include "raylib.h"
 
-#include <filesystem>
-
 using namespace piko;
 
 RenderShader::RenderShader(const std::string& vertexCode, const std::string& fragCode, const std::string& name){

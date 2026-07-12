@@ -105,7 +105,7 @@ namespace piko {
             MODE mode = MODE::MANUAL;
             float lerpSpeed = 5.0f;
             float panSpeed = 300.0f;
-            Vect2 targetOffset = (0.0f, 0.0f);
+            Vect2 targetOffset = {0.0f, 0.0f};
     };
 
     class ButtonScript : public Script {

@@ -6,7 +6,13 @@
 
 #include "raylib.h"
 #include "rlgl.h"
-#include "external/glad.h"
+
+#ifdef __EMSCRIPTEN__
+#include <GLES3/gl3.h> // WebGL2 API headers natively mapped by Emscripten
+#else
+#include "external/glad.h" // Desktop GL function pointer loader
+#endif
+
 #include "global.hpp"
 
 #include <algorithm>
@@ -97,19 +103,19 @@ void RenderBatch::init(){
     int stride = sizeof(Vertex);
     // 0: Position (x, y, z)
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, x));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, x)));
     
     // 1: Color (r, g, b, a)
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, r));
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, r)));
 
     // 2: TexCoords (u, v)
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, u));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, u)));
 
     // 3: TexID
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, stride, (void*)offsetof(Vertex, texID));
+    glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<void*>(offsetof(Vertex, texID)));
 
     glBindVertexArray(0);
 }
@@ -269,6 +275,11 @@ void RenderBatch::flush(const RenderShader* shader, Cam* camera) {
     glBindVertexArray(VAO);
     glDrawElements(GL_TRIANGLES, quadCount * 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
+    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
+    glDisableVertexAttribArray(3);
 
     shader->end();
 

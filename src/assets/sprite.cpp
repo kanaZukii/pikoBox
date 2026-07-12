@@ -10,7 +10,7 @@ using namespace piko;
 
 TextureIMG::TextureIMG(const std::string& filepath){
     // Check if file exists on disk
-    if (!std::filesystem::exists(filepath)) {
+    if (!FileExists(filepath.c_str())) {
         throw std::runtime_error("TEXTUREIMG: File does not exist: " + filepath);
     }
 

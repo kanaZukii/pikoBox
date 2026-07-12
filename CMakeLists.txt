@@ -8,9 +8,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BUILD_EXAMPLES OFF CACHE BOOL "Build raylib examples" FORCE)
 set(BUILD_TESTS OFF CACHE BOOL "Build raylib tests" FORCE)
 
-# Modern Raylib Linux window backend platform flag configurations
-set(GLFW_BUILD_WAYLAND ON CACHE BOOL "Build Raylib with Wayland support" FORCE)
-set(GLFW_BUILD_X11 ON CACHE BOOL "Build Raylib with X11 support" FORCE)
+if(NOT EMSCRIPTEN)
+    set(GLFW_BUILD_WAYLAND ON CACHE BOOL "Build Raylib with Wayland support" FORCE)
+    set(GLFW_BUILD_X11 ON CACHE BOOL "Build Raylib with X11 support" FORCE)
+else()
+    # Force Raylib's CMake script to switch internal targets to Web
+    set(PLATFORM "Web" CACHE STRING "Raylib target platform" FORCE)
+endif()
 
 # RAYLIB SUBMODULE VERIFICATION
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/raylib/CMakeLists.txt")

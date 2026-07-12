@@ -6,14 +6,16 @@
 
 #include <stdexcept>
 #include <fstream>
+#include <sstream>
 
 using json = nlohmann::json;
 using namespace piko;
 
 static std::string piko::ReadFileToString(const std::string& path) {
-    if (!std::filesystem::exists(path)) {
+    if (!FileExists(path.c_str())) {
         throw std::runtime_error("File not found at path: " + path);
     }
+
     std::ifstream file(path);
     std::stringstream buffer;
     buffer << file.rdbuf();
@@ -353,6 +355,8 @@ void AssetManager::flushDeletionQueue() {
                 }
                 break;
             }
+            default:
+                break;
         }
     }
 
@@ -373,6 +377,7 @@ void AssetManager::flushDeletionQueue() {
             case AssetType::Shader: shaders.erase(a.key); break;
             case AssetType::SpriteSheet: spriteSheets.erase(a.key); break;
             case AssetType::AnimationClip : animationClips.erase(a.key); break;
+            default: break;
         }
     }
 
