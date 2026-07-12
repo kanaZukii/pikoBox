@@ -147,6 +147,7 @@ void AnimationPlayer::play(const AnimationClip* clip, bool loop){
 
     if(currentClip){
         playing = true;
+        update(0.0f);
     } else{
         playing = false;
     }
@@ -162,6 +163,7 @@ void AnimationPlayer::play(const std::string& name, bool loop){
 
     if(currentClip){
         playing = true;
+        update(0.0f);
     } else{
         playing = false;
     }
