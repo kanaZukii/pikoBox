@@ -1,3 +1,6 @@
+// License: MIT
+// Copyright (c) 2026 kanaZukii (GelBanana)
+
 #pragma once
 #include "piko/component.hpp"
 #include "piko/math.hpp"

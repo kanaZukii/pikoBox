@@ -741,7 +741,7 @@ Scene *SceneManager::createScene(std::string key) {
     scene->setInputManager(inputMAN);
     scene->setAssetsManager(assetMAN);
     scene->setAudioManager(audioMAN);
-    scene->setGameCamera(sceneCam);
+    scene->setCamera(sceneCam);
     scene->setEventBroker(eventBroker);
 
     Scene *ptr = scene.get();

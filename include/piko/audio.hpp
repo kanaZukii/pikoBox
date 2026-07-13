@@ -1,4 +1,8 @@
+// License: MIT
+// Copyright (c) 2026 kanaZukii (GelBanana)
+
 #pragma once
+
 #include <unordered_map>
 #include <vector>
 

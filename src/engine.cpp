@@ -154,8 +154,6 @@ void Engine::drawScene(){
     EndBlendMode();
     EndTextureMode();
 
-    ClearBackground(BLACK);
-
     DrawTexturePro(
         drawCanvas->texture,
         (Rectangle){0, 0, (float)drawCanvas->texture.width,
