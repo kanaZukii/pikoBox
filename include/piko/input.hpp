@@ -12,6 +12,7 @@
 namespace piko {
     class Engine;
     
+    // Key codes mapped to match standard GLFW/Raylib definitions.
     namespace KEYS {
         constexpr int SPACE = 32;
         constexpr int MINUS = 45;
@@ -82,12 +83,14 @@ namespace piko {
         constexpr int DOWN  = 264;
     }
 
+    // Mouse button codes mapped to match standard GLFW/Raylib definitions.
     namespace MOUSE {
         constexpr int LEFT   = 0;
         constexpr int RIGHT  = 1;
         constexpr int MIDDLE = 2;
     }
 
+    // Snapshot of mouse input data for the current frame.
     struct MouseState {
         float x = 0.0f;
         float y = 0.0f;
@@ -95,46 +98,67 @@ namespace piko {
         float deltaY = 0.0f;
     };
 
+    /*
+        InputManager track and polls input events from a mouse or a keyboard.
+        It can map physical hardware events (keys/mouse) to logical actions.
+        Game code should query actions (e.g., "Jump") rather than hardware keys.
+    */
     class InputManager {
         public:
             ~InputManager() = default;
             InputManager(const InputManager&) = delete;
             InputManager& operator=(const InputManager&) = delete;
 
+            // Updates state snapshots escpecially for the mouse inputs.
             void update();
 
-            // Configuration API
-            // Bind a single chord/combo to an action (appends to existing configurations)
+            // Bind a single key combo to an action (appends to existing).
             void bindKey(const std::string& action, const std::vector<int>& rawKeyCodes);
+
+            // Bind a single mouse button combo to an action (appends to existing).
             void bindMouseBtn(const std::string& action, const std::vector<int>& rawButtonCodes);
 
-            // Quick helper override for a single key binding (no vector wrapper needed)
-            void bindKey(const std::string& action, int singleKeyCode) {
-                bindKey(action, std::vector<int>{ singleKeyCode });
-            }
+            // Override for a single key binding no combos (appends to existing).
+            void bindKey(const std::string& action, int singleKeyCode) { bindKey(action, std::vector<int>{ singleKeyCode }); }
 
-            void bindMouseBtn(const std::string& action, int singleKeyCode) {
-                bindMouseBtn(action, std::vector<int>{singleKeyCode});
-            }
+            // Override for a single mouse button binding no combos (appends to existing).
+            void bindMouseBtn(const std::string& action, int singleKeyCode) { bindMouseBtn(action, std::vector<int>{singleKeyCode}); }
 
+            // Removes key binding for a specific action.
             bool unbindKeyAct(const std::string& action);
+
+            // Removes mouse button binding for a specific action.
             bool unbindMouseAct(const std::string& action);
 
+            // Hadware Input Event Query
+
+            // Returns true as long as the key is currently being held down.
             bool isKeyDown(const int& key);
+
+            // Returns true only during the frame the key was initially pressed.
             bool isKeyPressed(const int& key);
 
+            // Returns true as long as the mouse button is currently being held down.
             bool isMouseDown(const int& btn);
+
+            // Returns true only during the frame the button was initially clicked.
             bool isMousePressed(const int& btn);
 
+            // Action Binded to Input Event Query
+
+            // Returns true if any key/button mapped to this action is being held.
             bool isActionDown(const std::string& action) const;
+
+            // Returns true if any key/button mapped to this action was triggered this frame.
             bool isActionPressed(const std::string& action) const;
 
+            // Returns the current mouse cursor position in screen coordinates.
             Vect2 getMousePos() const { return {mouse.x, mouse.y};}
-            Vect2 getMouseDelta() const { return {mouse.deltaX, mouse.deltaY};}
-
             float getMouseX() const { return mouse.x; }
             float getMouseY() const { return mouse.y; }
             
+            // Returns the change in mouse position since the last frame.
+            Vect2 getMouseDelta() const { return {mouse.deltaX, mouse.deltaY};}
             float getMouseDeltaX() const { return mouse.deltaX; }
             float getMouseDeltaY() const { return mouse.deltaY; }
 
@@ -142,7 +166,8 @@ namespace piko {
             InputManager(){}
             void init();
             void terminate(){}
-            // Action -> List of Combos -> List of Keys in that combo
+           
+            // Mapping "action" to a list of input combos.
             std::unordered_map<std::string, std::vector<std::vector<int>>> keyboardBindings;
             std::unordered_map<std::string, std::vector<std::vector<int>>> mouseBindings;
 

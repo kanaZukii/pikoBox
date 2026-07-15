@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdint>
 
-// Math structs for conversion with Raylib
+// Forward declare raylib's math structs for compatibility
 struct Matrix;
 struct Vector2;
 struct Vector3;
@@ -15,14 +15,15 @@ struct Color;
 
 namespace piko {
 
+    // Mathematical constants for engine-wide use
     constexpr float P_EPSILON = 1e-6f;
     constexpr float P_PI = 3.14159265358979323846f;
     constexpr float P_TWO_PI  = 6.28318530717958647692f;
     constexpr float P_HALF_PI = 1.57079632679489661923f;
-
     constexpr float P_DEG2RAD = P_PI / 180.0f;
     constexpr float P_RAD2DEG = 180.0f / P_PI;
 
+    // 2D float vector
     struct Vect2
     {
         union {
@@ -33,15 +34,11 @@ namespace piko {
         };
 
         Vect2() : x(0), y(0) {}
-
         Vect2(float n) : x(n), y(n) {}
-
         Vect2(float x, float y) : x(x), y(y) {}
         
         float length() const;
-
         float lengthSquared() const { return x * x + y * y; }
-
         Vect2 normalize() const;
 
         float& operator[](int i) { return v[i]; }
@@ -49,9 +46,10 @@ namespace piko {
 
         bool operator==(const Vect2& b);
 
-        operator Vector2() const;
+        operator Vector2() const;   // For conversion to raylib's Vector2
     };
 
+    // 3D float vector
     struct Vect3
     {
         union {
@@ -62,23 +60,21 @@ namespace piko {
         };
 
         Vect3() : x(0), y(0), z(0) {}
-
         Vect3(float n) : x(n), y(n), z(n) {} 
-
         Vect3(float x, float y, float z) : x(x), y(y), z(z) {}
 
         float length() const;
-
         Vect3 normalize() const;
 
         float& operator[](int i) { return v[i]; }
         float operator[](int i) const { return v[i]; }
-
+        
         bool operator==(const Vect3& b);
 
-        operator Vector3() const;
+        operator Vector3() const;   // For conversion to raylib's Vector3
     };
 
+    // 2D float rectangle
     struct Rect
     {
         union{
@@ -97,7 +93,7 @@ namespace piko {
 
         bool operator==(const Rect& b) const;
 
-        operator Rectangle() const;
+        operator Rectangle() const; // For conversion to raylib's Rectangle
     };
 
     struct Color4 {
@@ -118,7 +114,7 @@ namespace piko {
         };
     };
     
-
+    // 4x4 float Matrix. Column major order.
     struct Mat4 {
         union {
             struct {
@@ -130,7 +126,7 @@ namespace piko {
             float m[16];
         };
 
-        Mat4() { *this = Identity(); }
+        Mat4() : Mat4(0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0) {}
 
         Mat4(float v0, float v4, float v8, float v12,
             float v1, float v5, float v9, float v13,
@@ -150,6 +146,7 @@ namespace piko {
             };
         }
 
+        // Creates a matrix filled with zero.
         static Mat4 Zero() {
             return {
                 0.0f, 0.0f, 0.0f, 0.0f,
@@ -159,6 +156,7 @@ namespace piko {
             };
         }
 
+        // Creates an orthographic projection matrix.
         static Mat4 Ortho(float left, float right, float bottom, float top, float znear, float zfar) {
             Mat4 res = Identity();
             
@@ -177,6 +175,7 @@ namespace piko {
             return res;
         }
 
+        // Creates a 2D view transform (translation, rotation, zoom).
         static Mat4 View2D(Vect2 offset, Vect2 target, float rotation, float zoom) {
             Mat4 mat = Mat4::Identity();
 
@@ -198,9 +197,10 @@ namespace piko {
             return mat;
         }
 
-        operator Matrix() const;
+        operator Matrix() const;    // For conversion to raylib's Matrix
     };
 
+    // Transforms a 2D point by a 4x4 matrix (assuming 2D plane z=0).
     inline Vect2 TransformVect2(const Vect2& v, const Mat4& mat) {
         Vect2 result;
         // Standard Vector4 * Mat4 logic, simplified for 2D (z=0, w=1)

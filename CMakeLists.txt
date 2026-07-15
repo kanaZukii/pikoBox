@@ -1,3 +1,6 @@
+# License: MIT
+# Copyright (c) 2026 kanaZukii (GelBanana)
+
 cmake_minimum_required(VERSION 3.16)
 project(pikoBox LANGUAGES CXX)
 
@@ -33,7 +36,7 @@ file(GLOB_RECURSE ENGINE_SOURCES
 add_library(pikoBox STATIC ${ENGINE_SOURCES})
 
 # EXPORT SYSTEM INCLUDE SEARCH PATHS
-# Removed $<BUILD_INTERFACE> so downstream projects can actually see your headers!
+# Removed $<BUILD_INTERFACE> so downstream projects can actually see the headers!
 target_include_directories(pikoBox
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"

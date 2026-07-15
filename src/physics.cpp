@@ -154,7 +154,7 @@ void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables,
     for (Collidable* colA : collidables) {
         if (!colA) continue;
 
-        bool canInitiateCheck = colA->isDynamic() || colA->isTriggered();
+        bool canInitiateCheck = colA->isDynamic() || colA->isTrigger();
         if (!canInitiateCheck) continue;
 
         Rect boundsA = colA->getGlobalTransform();
@@ -190,7 +190,7 @@ void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables,
                         manifold.colA = colA;
                         manifold.colB = colB;
                         
-                        if (colA->isTriggered() || colB->isTriggered()) {
+                        if (colA->isTrigger() || colB->isTrigger()) {
                             scene->publishEvent<CollisionEvent>(
                                 CollisionEvent(colA, colB, manifold.normal, manifold.penetration)
                             ); 

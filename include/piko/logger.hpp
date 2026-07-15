@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace piko {
+    // Levels to differentiate and organize the log messages.
     enum class LogLevel {
         INFO,
         WARN,
@@ -18,6 +19,7 @@ namespace piko {
         DEBG
     };
 
+    // Log a message via cout with C style formatting
     inline void LogMsg(LogLevel level, const char* format, ...) {
         // Initialize C-style variadic argument parsing
         va_list args;

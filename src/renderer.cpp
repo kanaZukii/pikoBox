@@ -1,7 +1,9 @@
 #include "piko/renderer.hpp"
+
 #include "piko/shader.hpp"
 #include "piko/cam.hpp"
 #include "piko/sprite.hpp"
+#include "piko/font.hpp"
 #include "piko/logger.hpp"
 
 #include "raylib.h"

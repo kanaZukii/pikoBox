@@ -42,7 +42,7 @@ void Collidable::terminate(){
 
 std::string Collidable::serialize(){
     json data = json::parse(Component::serialize());
-    data["triggered"] = triggered;
+    data["trigger"] = trigger;
     data["dynamic"] = dynamic;
     if(parentBody){
         data["parentBody"] = parentBody->getAlias();
@@ -54,7 +54,7 @@ std::string Collidable::serialize(){
 void Collidable::deserialize(const std::string& rawJson){
     Component::deserialize(rawJson);
     json data = json::parse(rawJson);
-    triggered = data.value("triggered", false);
+    trigger = data.value("trigger", false);
     dynamic = data.value("dynamic", false);
     parentBody = nullptr;
     if (data.contains("parentBody")) {

@@ -61,6 +61,11 @@ namespace piko {
             : btn(btn), state(state) {}
     };
 
+    /*
+        EventBroker provides a decoupled messaging system.
+        Allows components and subsystem to broadcast signals and listeners to react without 
+        knowing about each other's existence.
+    */
     class EventBroker {
         private:
             struct Subscription {
@@ -75,6 +80,7 @@ namespace piko {
             EventBroker(const EventBroker&) = delete;
             EventBroker& operator=(const EventBroker&) = delete;
 
+            // Registers a callback for a specific event type. Returns a unique ID for unsubscription.
             template <typename T>
             uint32_t subscribe(std::function<void(const T&)> callback) {
                 uint32_t subID = nextSubscriptionID++;
@@ -89,6 +95,7 @@ namespace piko {
                 return subID;
             }
 
+            // Removes a subscription using the ID returned by subscribe().
             void unsubscribe(uint32_t subID) {
                 if (subID == 0) return;
 
@@ -105,6 +112,7 @@ namespace piko {
                 }
             }
 
+            // Broadcasts an event to all registered listeners of type T.
             template <typename T>
             void publish(const T& event) {
                 auto it = subscribers.find(typeid(T));
