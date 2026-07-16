@@ -172,6 +172,11 @@ namespace piko {
                     Rect clipRegion = {0.0f, 0.0f, 0.0f, 0.0f}
                 );
         
+    protected:
+        Renderer(){}
+        void init();
+        void terminate(){}
+
         // Finalizes all batches, sorts them if needed and executes GPU draw calls.
         void flush();
 
@@ -180,11 +185,6 @@ namespace piko {
 
         void setCamera(Cam* camera) { activeCam = camera; }
         void setShader(const RenderShader* shader) { activeShader = shader; }
-
-    protected:
-        Renderer(){}
-        void init();
-        void terminate(){}
 
         friend class Engine;
         

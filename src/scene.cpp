@@ -806,6 +806,15 @@ void SceneManager::updateScene(DeltaTime dt) {
     
 }
 
+void SceneManager::lateUpdateScene (DeltaTime dt){
+    for (Script* s : currentScene->getScripts()) {
+        if(s){
+            if(!s->isUpdating()){continue;}
+            s->lateUpdate(dt.physics);
+        }
+    }
+}
+
 void SceneManager::drawScene(Renderer &renderer) {
     if (currentScene) currentScene->draw(renderer);
 }

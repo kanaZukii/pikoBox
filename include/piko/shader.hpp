@@ -17,7 +17,7 @@ namespace piko {
     class RenderShader{
         public:
             // Creates a shader program from raw source code strings.
-            RenderShader(const std::string& vertexCode, const std::string& fragCode, const std::string& name);
+            RenderShader(const std::string& name, const std::string& vertexCode, const std::string& fragCode);
 
             // Releases shader resources from the GPU.
             ~RenderShader();

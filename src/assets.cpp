@@ -41,7 +41,7 @@ const TextureIMG* AssetManager::addTexture(std::string key, std::string path){
     auto tex_exist = textures.find(key);
     if (tex_exist != textures.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create texture '%s'. It already exist.", key.c_str());
-        return &(tex_exist->second);
+        return tex_exist->second.get();
     }
 
     auto path_exist = texPathToKey.find(path);
@@ -51,19 +51,16 @@ const TextureIMG* AssetManager::addTexture(std::string key, std::string path){
     }
 
     try {
-        // Use emplace to construct directly in the map node. No temporaries, no leaks!
-        auto [it, success] = textures.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(path)
-        );
+        auto texPtr = std::make_unique<TextureIMG>(path);
+        
+        auto [it, success] = textures.emplace(key, std::move(texPtr));
 
         if (!success) {
             throw std::runtime_error("Map insertion failed for texture");
         }
 
         texPathToKey[path] = key;
-        return &(it->second);
+        return it->second.get();
 
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create texture '%s': %s", key.c_str(), e.what());
@@ -75,7 +72,7 @@ const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, A
     auto aud_exist = audios.find(key);
     if (aud_exist != audios.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create audio clip '%s'. It already exist.", key.c_str());
-        return &(aud_exist->second);
+        return aud_exist->second.get();
     }
 
     auto path_exist = audioPathToKey.find(path);
@@ -85,11 +82,9 @@ const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, A
     }
 
     try {
-        auto [it, success] = audios.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(path, type)
-        );
+        auto aud_ptr = std::make_unique<AudioClip>(path, type);
+
+        auto [it, success] = audios.emplace(key, std::move(aud_ptr));
         
         audioPathToKey[path] = key;
         if(type == AudioClip::AudioType::STATIC_SFX){
@@ -98,7 +93,7 @@ const AudioClip* AssetManager::addAudioClip(std::string key, std::string path, A
             music.insert(key);
         }
 
-        return &(it->second);
+        return it->second.get();
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create audio clip '%s': %s", key.c_str(), e.what());
         return nullptr;
@@ -109,7 +104,7 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
     auto font_exist = fonts.find(key);
     if (font_exist != fonts.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create font atlas '%s'. It already exist.", key.c_str());
-        return &(font_exist->second);
+        return font_exist->second.get();
     }
 
     auto path_exist = fontPathToKey.find(path);
@@ -119,19 +114,16 @@ const FontAtlas* AssetManager::addFontAtlas(std::string key, std::string path, i
     }
 
     try {
-        // Use emplace to construct directly in the map node. No temporaries, no leaks!
-        auto [it, success] = fonts.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(path, baseSize)
-        );
+        auto fontPtr = std::make_unique<FontAtlas>(path, baseSize);
+
+        auto [it, success] = fonts.emplace(key, std::move(fontPtr));
 
         if (!success) {
             throw std::runtime_error("Map insertion failed for font.");
         }
 
         fontPathToKey[path] = key;
-        return &(it->second);
+        return it->second.get();
 
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create font atlas '%s': %s", key.c_str(), e.what());
@@ -143,7 +135,7 @@ const RenderShader* AssetManager::addShader(std::string key, std::string verPath
     auto shader_exist = shaders.find(key);
     if (shader_exist != shaders.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create shader '%s'. It already exist.", key.c_str());
-        return &(shader_exist->second);
+        return shader_exist->second.get();
     }
 
     try {
@@ -151,14 +143,15 @@ const RenderShader* AssetManager::addShader(std::string key, std::string verPath
         std::string vCode = ReadFileToString(verPath);
         std::string fCode = ReadFileToString(fragPath);
 
-        auto [it, success] = shaders.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(vCode, fCode, key) // Passes the code strings down!
-        );
-        it->second.verPath = verPath;
-        it->second.fragPath = fragPath;
-        return &(it->second);
+        auto shaderPtr = std::make_unique<RenderShader>(key, vCode, fCode);
+
+        auto [it, success] = shaders.emplace(key, std::move(shaderPtr));
+        RenderShader* newShader = it->second.get();
+
+        newShader->verPath = verPath;
+        newShader->fragPath = fragPath;
+
+        return newShader;
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Failed to create shader '%s': %s", key.c_str(), e.what());
         return nullptr; 
@@ -168,18 +161,18 @@ const RenderShader* AssetManager::addShader(std::string key, std::string verPath
 const RenderShader* AssetManager::addShaderFromMemory(std::string key, std::string verCode, std::string fragCode) {
     auto shader_exist = shaders.find(key);
     if (shader_exist != shaders.end()) {
-        return &(shader_exist->second);
+        return shader_exist->second.get();
     }
 
     try {
-        auto [it, success] = shaders.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(verCode, fragCode, key)
-        );
-        it->second.verPath = "[MEMORY]";
-        it->second.fragPath = "[MEMORY]";
-        return &(it->second);
+
+        auto shaderPtr = std::make_unique<RenderShader>(key, verCode, fragCode);
+
+        auto [it, success] = shaders.emplace(key, std::move(shaderPtr));
+        RenderShader* newShader = it->second.get();
+        newShader->verPath = "[MEMORY]";
+        newShader->fragPath = "[MEMORY]";
+        return newShader;
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: failed to create shader '%s' from memory: %s", key.c_str(), e.what());
         return nullptr;
@@ -190,7 +183,7 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     auto sheet_exist = spriteSheets.find(key);
     if (sheet_exist != spriteSheets.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create sprite sheet '%s'. It already exist.", key.c_str());
-        return &sheet_exist->second;
+        return sheet_exist->second.get();
     }
 
     try {
@@ -224,15 +217,12 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
                 currentY += sprHeight + spacing;
             }
         }
+        
+        auto sheet = std::make_unique<SpriteSheet>(key, tex, sources);
 
-        // Emplace your sheet directly to keep the vector allocations completely secure inside the heap node
-        auto [it, success] = spriteSheets.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(key, tex, sources)
-        );
+        auto [it, success] = spriteSheets.emplace(key, std::move(sheet));
 
-        return &(it->second);
+        return it->second.get();
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create sprite sheet '%s': %s", key.c_str(), e.what());
         return nullptr;
@@ -243,18 +233,15 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     auto sheet_exist = spriteSheets.find(key);
     if (sheet_exist != spriteSheets.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create sprite sheet '%s'. It already exist.", key.c_str());
-        return &sheet_exist->second;
+        return sheet_exist->second.get();
     }
 
      try {
-        // Emplace your sheet directly to keep the vector allocations completely secure inside the heap node
-        auto [it, success] = spriteSheets.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(key, tex, sources)
-        );
+        auto sheet = std::make_unique<SpriteSheet>(key, tex, sources);
 
-        return &(it->second);
+        auto [it, success] = spriteSheets.emplace(key, std::move(sheet));
+
+        return it->second.get();
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create sprite sheet '%s': %s", key.c_str(), e.what());
         return nullptr;
@@ -271,18 +258,16 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     auto anim_exist = animationClips.find(key);
     if (anim_exist != animationClips.end()) {
         PBOX_WARN("ASSET_MAN: Cannot create animation clip '%s'. It already exist.", key.c_str());
-        return &anim_exist->second;
+        return anim_exist->second.get();
     }
 
      try {
-        // Emplace your sheet directly to keep the vector allocations completely secure inside the heap node
-        auto [it, success] = animationClips.emplace(
-            std::piecewise_construct,
-            std::forward_as_tuple(key),
-            std::forward_as_tuple(key, sprKey, tranKey, colKey)
-        );
+        
+        auto anim = std::make_unique<AnimationClip>(key, sprKey, tranKey, colKey);
 
-        return &(it->second);
+        auto [it, success] = animationClips.emplace(key, std::move(anim));
+
+        return it->second.get();
     } catch (const std::exception& e) {
         PBOX_ERROR("ASSET_MAN: Cannot create animation clip '%s': %s", key.c_str(), e.what());
         return nullptr;
@@ -301,15 +286,25 @@ const Sprite* AssetManager::getTexSprite(std::string key){
     // 2. Return if the 1:1 sprite wrapper is already cached
     auto tsprite_exist = texSprites.find(key); 
     if (tsprite_exist != texSprites.end()) {
-        return &(tsprite_exist->second);
+        return tsprite_exist->second.get();
     }
 
     // 3. Construct the sprite wrapper safely inside the node map space
-    const TextureIMG* texPtr = &(tex_exist->second);
+    const TextureIMG* texPtr = tex_exist->second.get();
     Rect srcRect = { 0.0f, 0.0f, static_cast<float>(texPtr->getWidth()), static_cast<float>(texPtr->getHeight()) };
     
-    auto [it, success] = texSprites.emplace(key, Sprite{ texPtr, srcRect, key, -1, { 0.0f, 0.0f } });
-    return &(it->second);
+    auto sprite = std::make_unique<Sprite>();
+    auto [it, success] = texSprites.emplace(key, std::move(sprite));
+
+    Sprite* newSprite = it->second.get();
+
+    newSprite->sheet = key; 
+    newSprite->tex = texPtr;
+    newSprite->source = srcRect;
+    newSprite->index = -1;
+    newSprite->pivot = {0.0f, 0.0f};
+
+    return newSprite;
 }
 
 const Sprite* AssetManager::getTexSpriteByPath(std::string path){
@@ -361,7 +356,7 @@ void AssetManager::flushDeletionQueue() {
     }
 
     for (auto it = spriteSheets.begin(); it != spriteSheets.end(); ) {
-        const TextureIMG* tex = it->second.getTexAtlas();
+        const TextureIMG* tex = it->second.get()->getTexAtlas();
         if (deletedTexPath.count(tex->getFilePath())) {
             it = spriteSheets.erase(it); 
         } else {
@@ -390,7 +385,7 @@ std::string AssetManager::serialize() {
     // 1. Core Textures Matrix
     json textureMap = json::object();
     for (const auto& [key, tex] : textures) {
-        textureMap[key] = tex.getFilePath(); // Assuming getFilePath() or path property exists
+        textureMap[key] = tex.get()->getFilePath(); // Assuming getFilePath() or path property exists
     }
     data["textures"] = textureMap;
 
@@ -398,8 +393,8 @@ std::string AssetManager::serialize() {
     json audioMap = json::object();
     for (const auto& [key, audio] : audios) {
         json audioData = {
-            {"path", audio.getFilePath()},
-            {"type", static_cast<int>(audio.getType())}
+            {"path", audio.get()->getFilePath()},
+            {"type", static_cast<int>(audio.get()->getType())}
         };
         audioMap[key] = audioData;
     }
@@ -409,8 +404,8 @@ std::string AssetManager::serialize() {
     json fontMap = json::object();
     for (const auto& [key, font] : fonts) {
         json fontData = {
-            {"path", font.getFilePath()},
-            {"baseSize", font.getBaseSize()}
+            {"path", font.get()->getFilePath()},
+            {"baseSize", font.get()->getBaseSize()}
         };
         fontMap[key] = fontData;
     }
@@ -419,8 +414,8 @@ std::string AssetManager::serialize() {
     // 4. Render Shaders Program Files
     json shaderMap = json::object();
     for (const auto& [key, shader] : shaders) {
-        std::string vPath = shader.verPath;
-        std::string fPath = shader.fragPath;
+        std::string vPath = shader.get()->verPath;
+        std::string fPath = shader.get()->fragPath;
         if(vPath.empty() || vPath == "[MEMORY]" || fPath.empty() || fPath == "[MEMORY]"){
             continue;
         }
@@ -435,13 +430,13 @@ std::string AssetManager::serialize() {
     // 5. SpriteSheet Packing Layouts (Depends on Texture Keys)
     json sheetMap = json::object();
     for (auto& [key, sheet] : spriteSheets) {
-        sheetMap[key] = json::parse(sheet.serialize());
+        sheetMap[key] = json::parse(sheet.get()->serialize());
     }
     data["spriteSheets"] = sheetMap;
 
     json animationMap = json::object();
     for(auto& [key, clip] : animationClips){
-        animationMap[key] = json::parse(clip.serialize());
+        animationMap[key] = json::parse(clip.get()->serialize());
     }
     data["animationClips"] = animationMap;
 

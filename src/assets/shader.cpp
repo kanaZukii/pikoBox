@@ -5,7 +5,7 @@
 
 using namespace piko;
 
-RenderShader::RenderShader(const std::string& vertexCode, const std::string& fragCode, const std::string& name){
+RenderShader::RenderShader(const std::string& name, const std::string& vertexCode, const std::string& fragCode){
     program = new Shader;
     
     // Compile directly from memory strings

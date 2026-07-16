@@ -112,6 +112,21 @@ namespace piko {
                 }
             }
 
+            /* 
+                Use this before subscribing a callback. 
+                Not yet implemented in Scene.
+            */ 
+            bool isSubscribed(uint32_t subID) {
+                // Iterate through each event type list
+                for (const auto& [type, list] : subscribers) {
+                    // Quick check, does this list contain the subID?
+                    for (const auto& sub : list) {
+                        if (sub.id == subID) return true;
+                    }
+                }
+                return false;
+            }
+
             // Broadcasts an event to all registered listeners of type T.
             template <typename T>
             void publish(const T& event) {

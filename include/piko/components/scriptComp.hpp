@@ -10,14 +10,20 @@ namespace piko {
     class SpriteRenderer;
     class TextBoxRenderer;
 
+    /*
+        CollisionRes Script for handling collision response logic.
+        Uses a functional callback to define behavior upon entity overlap.
+        Experimental, does not serialize well.
+     */
     class CollisionResScript : public Script {
         public:
+            // Tag of the entity this script reacts to
             std::string targetEntity = "";
 
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
 
-            // Callback passes: 1. This script instance, 2. The foreign object hit
+            // Callback triggered on collision
             using ResponseCallback = std::function<void(CollisionResScript* self, Collidable* other)>;
 
             void setCallback(ResponseCallback callback){ responseCallback = callback;}
@@ -38,13 +44,24 @@ namespace piko {
             ResponseCallback responseCallback;
     };
 
+    /*
+        PlayerMove Script for standard 2D movement parent Entity's PhysicsBody.
+        Supports both platformer and top-down navigation.
+        
+        Required Input Action Bindings:
+         - "player_move_left"  | "player_move_right"
+         - "player_move_up"    | "player_move_down"
+     */
     class PlayerMoveScript : public Script {
         public:
             float speed = 200.0f;
             bool topDownMode = false;
 
+            // Binds the Entity's PhysicsBody to response to inputs.
             void setPlayerBody(uint32_t pBody);
             void setPlayerBody(PhysicsBody* pBody);
+
+            // Binds the Parent Entity's PhysicsBody to response to inputs.
             void setPlayerBody(const std::string& bodyname);
 
             void onEarlyUpdate(float dt) override;
@@ -66,21 +83,36 @@ namespace piko {
             friend class SceneManager;
     };
 
+    /*
+        CameraMove Script for controlling camera behavior.
+        Supports static manual controls or dynamic target tracking (follow).
+        
+         Required Input Action Bindings for manual control:
+         - "camera_move_left"  | "camera_move_right"
+         - "camera_move_up"    | "camera_move_down"
+     */
     class CameraMoveScript : public Script {
         public:
             enum class MODE { MANUAL, FOLLOW };
 
             void setMode(MODE newMode) { mode = newMode; }
             
+            // Define the entity for the camera to track. Automatically sets mode to FOLLOW
             void setTarget(const Entity* target);
+            // Define the entity for the camera to track. Automatically sets mode to FOLLOW
             void setTarget(const uint32_t id);
+            // Define the entity for the camera to track. Automatically sets mode to FOLLOW
             void setTarget(const std::string& targetname);
 
             void setFollowLerpSpeed(float speed) { lerpSpeed = speed; }
             void setManualPanSpeed(float speed) { panSpeed = speed; }
+
+            // Direct active camera position override
             void setCamPos(Vect2 position);
+            // Direct active camera offset override
             void setCamOffset(Vect2 offset);
 
+            // Offset relative to the target for adjusting and centering.
             void setTargetOffset(Vect2 offset){targetOffset = offset;}
 
             void onUpdate(float dt) override;
@@ -111,6 +143,12 @@ namespace piko {
             Vect2 targetOffset = {0.0f, 0.0f};
     };
 
+    /*
+        Button UI Script for interactive button behavior.
+        Manages hover states, scale interpolation, and visual feedback.
+        Requires the parent Entity's SpriteRenderer and TextBoxRenderer for visuals.
+        Publishes a Button Event when interacted with.
+     */
     class ButtonScript : public Script {
         public:
             void onEarlyUpdate(float dt) override;
@@ -131,13 +169,19 @@ namespace piko {
             void setBGHoverColor(Color4 color) { bgHover = color; }
             void setTextHoverColor(Color4 color) { textHover = color; }
 
+            // Background Renderer linking
             void attachSpriteRenderer(SpriteRenderer* sprrenderer);
+            // TextBox Renderer linking
             void attachTextBoxRenderer(TextBoxRenderer* txtrenderer);
 
+            // Background Renderer linking
             void attachSpriteRenderer(uint32_t sprrenderer);
+            // TextBox Renderer linking
             void attachTextBoxRenderer(uint32_t txtrenderer);
 
+            // Background Renderer linking
             void attachSpriteRenderer(const std::string& sprrenderer);
+            // TextBox Renderer linking
             void attachTextBoxRenderer(const std::string& txtrenderer);
 
         protected:
@@ -157,6 +201,7 @@ namespace piko {
             float currentScale = 1.0f;     // Current animated scale state
             float scaleSpeed = 10.0f;       // Tweak this to make the grow feel snappier or smoother
 
+            // Visual properties
             Color4 bgHover = {255, 255, 255, 255};
             Color4 textHover = {50, 50, 50, 255};
             Color4 bgColor = {245, 245, 245, 255};

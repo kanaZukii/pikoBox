@@ -92,7 +92,7 @@ void PlayerMoveScript::onEarlyUpdate(float dt) {
         }
     } else {
         // Platformer Jump Logic (Using your fixed manifold tracking!)
-        if (input->isActionPressed("player_jump") && pBody->isGrounded) {
+        if (input->isActionPressed("player_move_up") && pBody->isGrounded) {
             pBody->velocity.y = -350.0f; // Jump impulse force
             pBody->isGrounded = false;
         }

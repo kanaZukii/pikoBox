@@ -6,32 +6,42 @@
 #include <unordered_map>
 #include <vector>
 
+// Forward declare raylib's music for streaming and tracking
 typedef struct Music Music; 
 
 namespace piko {
     class Engine;
     class AudioClip;
 
+    /*
+        AudioManager, central manager for sound playback and channel mixing.
+        Handles both memory-resident SFX and disk-streamed music.
+    */
     class AudioManager {
     public:
         ~AudioManager() = default;
 
-        // Enforce uniqueness for the audio hardware context controller
+        // Enforce uniqueness, do not copy
         AudioManager(const AudioManager&) = delete;
         AudioManager& operator=(const AudioManager&) = delete;
 
-        void update(); // Must tick every frame to refill streaming buffers
+        // Must be called every frame to refill streaming buffers and check playback.
+        void update(); 
 
-        // The Abstract mixing board API
+        // Sets volume (0.0f to 1.0f) for a specific playback channel.
         void setChannelVolume(int channelIdx, float volume);
         float getChannelVolume(int channelIdx) const;
 
+        // Mutes/Unmutes a specific playback channel.
         void setChannelMute(int channelIdx, bool muted);
 
-        // Playback API
+        // Plays an audio clip.
         void playClip(const AudioClip* clip, bool shouldLoop, int channel, float startAt=0.0f);
+        
+        // Immediately halts audio playback on the specified channel.
         void stopChannelStream(int channelIdx);
 
+        // Returns true if the channel is currently playing audio.
         bool isChannelPlaying(int channelIdx) const;
 
     private:
@@ -39,20 +49,20 @@ namespace piko {
         void init();
         void terminate();
 
-        // Holds tracking info for a channel currently streaming data from disk
+        // Internal context for tracks requiring continuous streaming from disk.
         struct ActiveStream {
             Music* streamRef = nullptr;
             bool isActive = false;
             float loopStart = 0.0f;
         };
 
-        // Storage for abstract volumes. Resizes dynamically based on incoming channel IDs.
+        // Indexed by channel ID.
         std::vector<float> channelVolumes;
         
-        // Maps an abstract channel index to its actively executing disk stream context
+        // Tracks active streaming instances.
         std::unordered_map<int, ActiveStream> activeStreams;
 
-        // Internal helper to ensure our volume array scales out safely on the fly
+        // Helper to ensure the volume vector is large enough for the requested channel index.
         void ensureChannelExists(int channelIdx);
 
         friend class Engine;

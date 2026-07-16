@@ -11,6 +11,10 @@ namespace piko {
     struct Sprite;
     class FontAtlas;
 
+    /*
+        SpriteRenderer Component, a Basic Component for sprite rendering.
+        Draws a texture within a certain region area.
+     */
      class SpriteRenderer : public Drawable{
         public:
             void setSprite(const Sprite* spr);
@@ -25,15 +29,15 @@ namespace piko {
             bool isXFlipped() {return flipX;}
             bool isYFlipped() {return flipY;}
 
-            void update(float dt) override;
-            void draw(Renderer& renderer) override;
-
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
 
         protected:
             SpriteRenderer() : Drawable() {className = "SpriteRenderer";}
             SpriteRenderer(const Sprite* spr);
+            
+            void update(float dt) override;
+            void draw(Renderer& renderer) override;
 
             friend class Scene;
             friend class SceneManager;
@@ -47,14 +51,14 @@ namespace piko {
             bool flipY = false;
     };
 
+    /*
+        TextRenderer Component, for simple text rendering.
+        Provides basic text, font, and scaling configuration.
+        Requires a loaded FontAtlas to render.
+     */
     class TextRenderer : public Drawable{
         public:
-            void update(float dt) override {}
-            void draw(Renderer& renderer) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
-            
+           
             void setText(const std::string& text){this->text = text;}
             void setFont(const FontAtlas* font){this->font = font;}
 
@@ -64,9 +68,15 @@ namespace piko {
             inline std::string getText(){return text;}
             inline const FontAtlas* getFont(){return font;}
 
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+            
         protected:
             TextRenderer() : Drawable() { className = "TextRenderer"; }
-            TextRenderer(const std::string& text);
+            TextRenderer(const std::string& text); 
+            
+            void update(float dt) override {}
+            void draw(Renderer& renderer) override;
 
             std::string text = "";
             const FontAtlas* font = nullptr;
@@ -81,15 +91,15 @@ namespace piko {
             Vect2 origin = {0.0f, 0.0f};
     };
 
+    /*
+        TextBoxRenderer Component, for advanced text rendering with word-wrapping and typewriter animation.
+        Uses a 'dirty' flag pattern to cache text layout and minimize per-frame calculations.
+        To define the box region where it will be rendered, use setSize(Vect2 size)
+     */
     class TextBoxRenderer : public TextRenderer {
         public:
+            // For text alignment within the box region 
             enum class TEXTALIGN { LEFT, CENTER, RIGHT };
-
-            void draw(Renderer& renderer) override;
-            void update(float dt) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
 
             void setText(const std::string& newText); 
             void setAlignment(TEXTALIGN align) { alignment = align; isDirty = true; }
@@ -99,8 +109,15 @@ namespace piko {
 
             bool isAllTextShown() {return visibleCharacterCount >= text.length();}
 
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+
         protected:
+
             TextBoxRenderer() : TextRenderer() { className = "TextBoxRenderer"; }
+            
+            void draw(Renderer& renderer) override;
+            void update(float dt) override;
 
             friend class Scene;
             friend class SceneManager;
@@ -116,22 +133,20 @@ namespace piko {
             float currentTypeTimer = 0.0f;
             size_t visibleCharacterCount = 0;
 
-            // Performance Cache
+            // Cache to prevent redundant text measurement
             bool isDirty = true;
             std::vector<std::string> cachedLines;
             void recalculateWordWrap();
             float measureTextWidth(const std::string& line);
     };
 
+    /*
+        UIPanel Component, a container for managing spatial layouts of child entities.
+        Automatically repositions children based on VERTICAL/HORIZONTAL alignment settings.
+     */
     class UIPanel : public Drawable{
         public:
             enum class LAYOUT { FREE, VERTICAL, HORIZONTAL };
-
-            void update(float dt) override;
-            void draw(Renderer& renderer) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
 
             void addChildEntity(uint32_t childId);
             void removeChildEntity(uint32_t childId);
@@ -140,13 +155,21 @@ namespace piko {
             void setLayoutMode(LAYOUT mode) { layoutMode = mode; isLayoutDirty = true; }
             void setChildSpacing(float spacing) { childSpacing = spacing; isLayoutDirty = true; }
             void setPadding(Vect2 pad) { padding = pad; isLayoutDirty = true; }
+            
+            // This enables auto vertical and horizontal centering.
             void setCenterContent(bool centered){centerContent = centered;}
+
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
 
         protected:
             UIPanel() : Drawable() {
                 className = "UIPanel";
                 color = {30, 30, 30, 150};
-            }
+            }  
+            
+            void update(float dt) override;
+            void draw(Renderer& renderer) override;
 
             friend class Scene;
             friend class SceneManager;
@@ -160,6 +183,8 @@ namespace piko {
             float rotation = 0.0f;
 
             bool isLayoutDirty = true;
+
+            // Does not hold pointers to Entities, only used when setting new positions.
             std::vector<uint32_t> childrenIds;
 
             void recalculateLayout();

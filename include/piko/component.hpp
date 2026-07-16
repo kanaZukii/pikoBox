@@ -42,9 +42,6 @@ namespace piko {
                 STRETCH_FILL    // Expand and set the size to the parent Entity's width and height.
             };
 
-            virtual void init(){}
-            virtual void update(float dt){if(!doUpdate || !owner) {return;}}
-            virtual void terminate(){discardedIDs.push_back(ID); owner = nullptr; }
             virtual ~Component() = default;
 
             // Serialization, to save Component data to a string in JSON format.
@@ -117,6 +114,10 @@ namespace piko {
                 }
             }
 
+            virtual void init(){}
+            virtual void update(float dt){if(!doUpdate || !owner) {return;}}
+            virtual void terminate(){discardedIDs.push_back(ID); owner = nullptr; }
+
             Entity* owner =  nullptr;
             uint32_t ownerID = 0;
 
@@ -150,7 +151,8 @@ namespace piko {
     /*
         PhysicsBody Component. Defines physical properties and 
         gives a collider to have a controllable body.
-        Simulated by the PhysicsEngine.
+        A Collidable is required or else it will be ignored
+        by the PhysicsEngine.
     */
     class PhysicsBody : public Component {
         public:
@@ -207,12 +209,7 @@ namespace piko {
     */
     class Drawable : public Component {
         public:
-            /* 
-                Submits a draw request to the renderer. 
-                Implemention differs per derived class.
-            */
-            virtual void draw(Renderer& renderer){}
-
+            
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
 
@@ -249,6 +246,12 @@ namespace piko {
         protected:
             Drawable() : Component() {className = "Drawable";}
 
+            /* 
+                Submits a draw request to the renderer. 
+                Implemention differs per derived class.
+            */
+            virtual void draw(Renderer& renderer){}
+
             Color4 color = {255, 255, 255, 255};
             int zIndex = 0;
             bool visible = true;
@@ -267,8 +270,6 @@ namespace piko {
     class Collidable : public Component {
         public:
         
-            void terminate() override;
-
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
 
@@ -301,6 +302,8 @@ namespace piko {
         protected:
             Collidable() : Component() { className = "Collidable"; }
 
+            void terminate() override;
+
             bool trigger = false;
             bool dynamic = false;
             bool culled = false;
@@ -324,13 +327,15 @@ namespace piko {
             virtual void onEarlyUpdate(float dt){}
             virtual void onLateUpdate(float dt){}
             
+            
+        protected:
+            Script() : Component() {className = "Script";}
+
             void init() override { onStart(); }
             void update(float dt) override { onUpdate(dt); }
             void earlyUpdate (float dt) { onEarlyUpdate(dt); }
             void lateUpdate (float dt) { onLateUpdate(dt); }
 
-        protected:
-            Script() : Component() {className = "Script";}
             friend class Scene;
             friend class SceneManager;
     };

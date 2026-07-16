@@ -14,25 +14,31 @@ namespace piko {
     class AudioClip;
     class SpriteRenderer;
 
+    /*
+        AnimationPlayer Component, it orchestrates playback of 
+        AnimationClips on the parent Entity's SpriteRenderer.
+        Supports configurable keyframe interpolation and looping states.
+     */
     class AnimationPlayer : public Component {
         public:
-            void update(float dt) override;
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
-
+            // Renderer assignment by ID
             void setRenderer(uint32_t id);
+            // Renderer assignment by alias
             void setRenderer(const std::string& sprrenderer);
+            // Renderer assignment by reference
             void setRenderer(SpriteRenderer* renderer);
+
+            // Playback configurations
 
             void setLoop(bool loop){onLoop = loop;}
             void setTransformLerp(bool enabled){lerpTransform = enabled;}
             void setColorLerp(bool enabled){lerpColor = enabled;}
 
+            // Playback configurations
+
             void play(const std::string& name, bool loop=false);
             void play(const AnimationClip* animation, bool loop=false);
             void stop();
-
             void resume();
             void pause();
 
@@ -40,8 +46,13 @@ namespace piko {
             bool isPlaying() const {return playing;}
             bool isLooping() const {return onLoop; }
 
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+
          protected:
             AnimationPlayer() : Component() {className = "AnimationPlayer";}
+
+            void update(float dt) override;
 
             friend class Scene;
             friend class SceneManager;
@@ -60,29 +71,34 @@ namespace piko {
             SpriteRenderer* rendererPtr = nullptr;
     };
 
+     /*
+        AudioPlayer Component, for managing sound effects and music playback.
+        Consumes a loaded AudioClip asset.
+     */
     class AudioPlayer : public Component {
         public:
-            // Mandatory Lifecycle overrides matching your engine's design
-            void init() override {}
-            void update(float dt) override {} 
-            void terminate() override { stop(); Component::terminate(); }
-
-            std::string serialize() override; 
-            void deserialize(const std::string& rawJson) override;
-            
             // Execution API
+
             void play(const std::string& audio, bool loop = false, int channel=0, float startAt=0.0f);
             void play(const AudioClip* audio, bool loop = false, int channel=0, float startAt=0.0f);
             void stop();
+
+            // Sets the volume of the audio (0.0f - 1.0f)
             void setVolumeModifier(float volume);
 
             inline const AudioClip* getCurrentClip() const noexcept { return currentClip; }
             inline float getVolumeModifier() const noexcept { return volumeMod; }
             bool isPlaying() const;
-
+ 
+            std::string serialize() override; 
+            void deserialize(const std::string& rawJson) override;
+            
         protected:
-            // Protected constructor enforces Scene allocation rules
             AudioPlayer() : Component() { className = "AudioPlayer"; }
+  
+            void init() override {}
+            void update(float dt) override {} 
+            void terminate() override { stop(); Component::terminate(); }
 
             friend class Scene;
             friend class SceneManager;

@@ -8,17 +8,17 @@
 namespace piko {
     
     class BoxCollider : public Collidable {
-        public:
-            void init() override {}
-            void update(float dt) override {}
-        
         protected:
             BoxCollider() : Collidable() {className = "BoxCollider";}
             BoxCollider(Vect2 size, Vect2 offset = {0.0f, 0.0f}) : Collidable() {
                 className = "BoxCollider";
                 this->setSize(size);
                 this->setOffset(offset);
-            }
+            } 
+            
+            void init() override {}
+            void update(float dt) override {}
+
             friend class Scene;
             friend class SceneManager;
     };

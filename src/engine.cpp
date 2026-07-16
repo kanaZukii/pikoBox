@@ -122,12 +122,7 @@ void Engine::update(){
 
         physicsMAN->update(dt.physics, sceneMAN->currentScene, simBounds);
 
-        for (Script* s : sceneMAN->currentScene->getScripts()) {
-            if(s){
-                if(!s->isUpdating()){continue;}
-                s->lateUpdate(dt.physics);
-            }
-        }
+        sceneMAN->lateUpdateScene(dt);
     }
 
     audioMAN->update();

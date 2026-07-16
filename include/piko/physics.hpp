@@ -41,12 +41,6 @@ namespace piko {
             PhysicsEngine(const PhysicsEngine&) = delete;
             PhysicsEngine& operator=(const PhysicsEngine&) = delete;
 
-            /*
-                Advances the simulation by 'dt'. Uses 'viewBubble' to perform 
-                spatial partitioning only on entities near the active camera.
-            */
-            void update(float dt, Scene* scene, const Rect& viewBubble);
-
             // Global simulation constants.
             void setGravity(float g) { gravity = g; }
             void setLinearDamping(float ld) { linearDamping = ld; }
@@ -57,9 +51,16 @@ namespace piko {
             void setCushionSize(float cushion) { cushionSize = cushion; }
 
         private:
-            PhysicsEngine(){}
+            PhysicsEngine(){} 
+           
             void init();
-            void terminate(){}
+            void terminate(){} 
+            
+            /*
+                Advances the simulation by 'dt'. Uses 'viewBubble' to perform 
+                spatial partitioning only on entities near the active camera.
+            */
+            void update(float dt, Scene* scene, const Rect& viewBubble);
 
             friend class Engine;
 

@@ -434,11 +434,8 @@ namespace piko {
             // Returns the current scene.
             Scene* getCurrentScene(){return currentScene;}
 
-            // Frame lifecycle
+            // Initialize the current scene
             void initScene();
-            void updateScene(DeltaTime dt);
-            void drawScene(Renderer& renderer);
-            void flushSceneDeferredCmds();
 
             // Serialization in JSON format to file
             bool saveSceneToFile(std::string path, std::string key=""); 
@@ -457,7 +454,13 @@ namespace piko {
             SceneManager(){}
 
             void init();        // Initializes SceneManager
-            void terminate();   // SceneManager cleanup
+            void terminate();   // SceneManager cleanup 
+            
+            // Frame lifecycle
+            void updateScene(DeltaTime dt);
+            void lateUpdateScene (DeltaTime dt);
+            void drawScene(Renderer& renderer);
+            void flushSceneDeferredCmds();
 
             // Dependency Injection. Setup engine systems for scenes to consume.
             void setEventBroker(EventBroker* broker);
