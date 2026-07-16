@@ -102,7 +102,7 @@ namespace piko {
         protected:
             /*
                 Base component constructor. Auto assign its runtime instance ID.
-                Derived classes must have no parameters in their constructor.
+                Derived classes must have a constructor with no arguments.
                 Must be called in the constructor of a derived class.
             */ 
             Component() {
@@ -138,7 +138,12 @@ namespace piko {
             SIZING sizing = SIZING::MANUAL;
 
             bool doUpdate = true;
-            friend class Scene;
+
+            /*
+                Make sure that each derived class must friend class Scene and 
+                class SceneManager so they can create the Component.
+            */
+            friend class Scene;         
             friend class SceneManager;
 
         private:
