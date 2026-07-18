@@ -33,7 +33,8 @@ namespace piko {
              enum class ANCHOR {
                 TOP_LEFT, 
                 CENTER,    
-                BOTTOM_MID
+                BOTTOM_MID,
+                TOP_MID
             };
 
             // Sizing mode for components relative to its parent Entity.
@@ -168,6 +169,10 @@ namespace piko {
             Vect2 velocity = {0.0f, 0.0f};
             // How strong will it be affected by the PhysicsEngine's gravity?
             float gravityScale = 1.0f;
+            // How strong will it be slowed down by the PhysicsEngine's ground friction?
+            float frictionScale = 1.0f;
+            // How strong will it be slowed down by the PhysicsEngine's air resistance?
+            float dragScale = 1.0f;
             // Is the attached collider on top of another collider?
             bool isGrounded = false;
 

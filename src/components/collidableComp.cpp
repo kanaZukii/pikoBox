@@ -84,7 +84,10 @@ std::string PhysicsBody::serialize(){
         {"x", velocity.x},
         {"y", velocity.y}
     };
+   
     data["gravityScale"] = gravityScale;
+    data["frictionScale"] = frictionScale;
+    data["dragScale"] = dragScale;
     data["isGrounded"] = isGrounded;
 
     return data.dump();
@@ -101,5 +104,7 @@ void PhysicsBody::deserialize(const std::string& rawJson){
     }
     
     gravityScale = data.value("gravityScale", 1.0f);
+    frictionScale = data.value("frictionScale", 1.0f);
+    dragScale = data.value("dragScale", 1.0f);
     isGrounded   = data.value("isGrounded", false);
 }

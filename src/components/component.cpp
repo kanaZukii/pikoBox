@@ -57,6 +57,10 @@ const Rect& Component::getGlobalTransform() {
                 anchorOffset.x = (ownerT.w - size.x) / 2.0f;
                 anchorOffset.y = ownerT.h - size.y;
                 break;
+            case ANCHOR::TOP_MID:
+                anchorOffset.x = (ownerT.w - size.x) / 2.0f;
+                anchorOffset.y = 0;
+                break;
         }
 
         // PHASE 3: STACK ABSOLUTE TRANSFORM MATRIX

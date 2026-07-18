@@ -92,8 +92,10 @@ void PhysicsEngine::update(float dt, Scene* scene, const Rect& viewBubble) {
             // Apply standard gravity downward
             pbody->velocity.y += gravity * pbody->gravityScale * dt;
 
-            float currentFrictionX = linearDamping;
-            if (pbody->isGrounded) currentFrictionX += groundFriction;
+            float currentFrictionX = linearDamping * pbody->dragScale;
+            if (pbody->isGrounded){
+                currentFrictionX += (groundFriction * pbody->frictionScale);
+            }
 
             pbody->velocity.x -= pbody->velocity.x * currentFrictionX * dt;
             
