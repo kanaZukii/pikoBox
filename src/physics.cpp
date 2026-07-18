@@ -60,48 +60,28 @@ void PhysicsEngine::update(float dt, Scene* scene, const Rect& viewBubble) {
             Entity& e = pbody->getOwner();
 
             // Unified out-of-bounds check accounting for the cushion size
-            bool isEntOutside = (e.transform.x + e.transform.w < activeBounds.x + cushionSize || 
-                                 e.transform.x > activeBounds.x + activeBounds.w - cushionSize ||
-                                 e.transform.y + e.transform.h < activeBounds.y + cushionSize || 
-                                 e.transform.y > activeBounds.y + activeBounds.h - cushionSize);
+            bool isEntOutside = (e.transform.x + e.transform.w < activeBounds.x || 
+                                 e.transform.x > activeBounds.x + activeBounds.w ||
+                                 e.transform.y + e.transform.h < activeBounds.y || 
+                                 e.transform.y > activeBounds.y + activeBounds.h);
 
             pbody->setCulled(isEntOutside);
             
             if (isEntOutside) {
-                pbody->velocity.x = 0.0f;
-                pbody->velocity.y = 0.0f;
-                pbody->isGrounded = false;
-                e.setDirtyTransform();
+                pbody->velocity = {0.0f, 0.0f};
                 continue; 
             }
 
-            // If already resting in cushion zone with negligible velocity,
-            // freeze it instantly to bypass gravity accumulation. This prevents multi-stacked creep.
-            bool wasInCushionZone = 
-                (e.transform.x < activeBounds.x + cushionSize || e.transform.x + e.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
-                 e.transform.y < activeBounds.y + cushionSize || e.transform.y + e.transform.h > activeBounds.y + activeBounds.h - cushionSize);
-
-            if (wasInCushionZone && pbody->velocity.lengthSquared() < 0.01f) {
-                pbody->velocity.x = 0.0f;
-                pbody->velocity.y = 0.0f;
-                continue; 
-            }
+            bool inCushion = (e.transform.x < activeBounds.x + cushionSize || 
+                          e.transform.x + e.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
+                          e.transform.y < activeBounds.y + cushionSize || 
+                          e.transform.y + e.transform.h > activeBounds.y + activeBounds.h - cushionSize);
 
             pbody->isGrounded = false;
-
-            // Apply standard gravity downward
             pbody->velocity.y += gravity * pbody->gravityScale * dt;
 
-            float currentFrictionX = linearDamping * pbody->dragScale;
-            if (pbody->isGrounded){
-                currentFrictionX += (groundFriction * pbody->frictionScale);
-            }
-
-            pbody->velocity.x -= pbody->velocity.x * currentFrictionX * dt;
-            
-            if (gravity == 0.0f) {
-                pbody->velocity.y -= pbody->velocity.y * linearDamping * dt;
-            }
+            float dampFactor = inCushion ? 6.0f : 1.0f;
+            pbody->velocity.x -= pbody->velocity.x * (linearDamping * pbody->dragScale * dampFactor) * dt;
 
             e.transform.x += pbody->velocity.x * dt;
             e.transform.y += pbody->velocity.y * dt;
@@ -133,28 +113,28 @@ void PhysicsEngine::update(float dt, Scene* scene, const Rect& viewBubble) {
     // 4. COLLISION PASS: This runs full spatial resolution and resolves overlapping entities
     checkCollisions(collidables, scene);
 
-    // 5. PASS C: POST-COLLISION FREEZING LAYER
-    for (PhysicsBody* pbody : processedBodies) {
-        if (!pbody || pbody->isCulled()) continue;
+    // // 5. PASS C: POST-COLLISION FREEZING LAYER
+    // for (PhysicsBody* pbody : processedBodies) {
+    //     if (!pbody || pbody->isCulled()) continue;
 
-        Entity& e = pbody->getOwner();
+    //     Entity& e = pbody->getOwner();
         
-        bool isInCushionZone = 
-            (e.transform.x < activeBounds.x + cushionSize || e.transform.x + e.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
-             e.transform.y < activeBounds.y + cushionSize || e.transform.y + e.transform.h > activeBounds.y + activeBounds.h - cushionSize);
+    //     bool isInCushionZone = 
+    //         (e.transform.x < activeBounds.x + cushionSize || e.transform.x + e.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
+    //          e.transform.y < activeBounds.y + cushionSize || e.transform.y + e.transform.h > activeBounds.y + activeBounds.h - cushionSize);
 
-        if (isInCushionZone) {
-            pbody->velocity.x = 0.0f;
-            pbody->velocity.y = 0.0f;
-        }
-    }
+    //     if (isInCushionZone) {
+    //         pbody->velocity.x = 0.0f;
+    //         pbody->velocity.y = 0.0f;
+    //     }
+    // }
 }
 
 void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables, Scene* scene) {
     checkedPairs.clear();
 
     for (Collidable* colA : collidables) {
-        if (!colA) continue;
+        if (!colA || colA->isCulled()) continue;
 
         bool canInitiateCheck = colA->isDynamic() || colA->isTrigger();
         if (!canInitiateCheck) continue;
@@ -176,7 +156,7 @@ void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables,
                 if (cellObjects.size() < 2) continue;
 
                 for (Collidable* colB : cellObjects) {
-                    if (!colB || colA == colB) continue;
+                    if (!colB || colA == colB || colB->isCulled()) continue;
                     if (colA->getOwnerID() == colB->getOwnerID()) continue; 
                     if (!colB->isDynamic() && !colA->isDynamic()) continue; 
 
@@ -215,11 +195,11 @@ bool PhysicsEngine::testAABB(const Rect& a, const Rect& b, CollisionManifold& ou
 
     float nX = (b.x + halfW_B) - (a.x + halfW_A);
     float overlapX = halfW_A + halfW_B - std::abs(nX);
-    if (overlapX <= 0.0f) return false;
+    if (overlapX <= P_EPSILON) return false;
 
     float nY = (b.y + halfH_B) - (a.y + halfH_A);
     float overlapY = halfH_A + halfH_B - std::abs(nY);
-    if (overlapY <= 0.0f) return false;
+    if (overlapY <= P_EPSILON) return false;
 
     if (overlapX < overlapY) {
         outManifold.penetration = overlapX;
@@ -235,75 +215,108 @@ bool PhysicsEngine::testAABB(const Rect& a, const Rect& b, CollisionManifold& ou
 void PhysicsEngine::resolveSolidCollision(const CollisionManifold& manifold) {
     Collidable& colA = *manifold.colA;
     Collidable& colB = *manifold.colB;
-
-    Entity& entA = colA.getOwner();
-    Entity& entB = colB.getOwner();
-
+    
     PhysicsBody* physA = colA.getPhysicsBody();
     PhysicsBody* physB = colB.getPhysicsBody();
 
-    // Check if either entity is locked into the cushion boundary right now
-    bool aLocked = physA && (entA.transform.x < activeBounds.x + cushionSize || entA.transform.x + entA.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
-                             entA.transform.y < activeBounds.y + cushionSize || entA.transform.y + entA.transform.h > activeBounds.y + activeBounds.h - cushionSize);
-    
-    bool bLocked = physB && (entB.transform.x < activeBounds.x + cushionSize || entB.transform.x + entB.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
-                             entB.transform.y < activeBounds.y + cushionSize || entB.transform.y + entB.transform.h > activeBounds.y + activeBounds.h - cushionSize);
+    const float SLEEP_THRESHOLD = 0.01f;
 
+    // 1. Stability Check: Only treat as an unmovable anchor if velocity is negligible.
+    bool aStable = physA && (physA->velocity.lengthSquared() < SLEEP_THRESHOLD);
+    bool bStable = physB && (physB->velocity.lengthSquared() < SLEEP_THRESHOLD);
+
+    // 2. Dynamic mass calculation: Stable objects act as infinite mass (0.0f dynamic mass)
+    float massA = colA.isDynamic() ? 1.0f : 0.0f;
+    float massB = colB.isDynamic() ? 1.0f : 0.0f;
+        
+    float totalMass = massA + massB;
+    if (totalMass <= 0.0f) return;
+
+    // 3. Setup Correction Vectors
     Vect2 cleanNormal = manifold.normal;
-    
-    float dirX = (entA.transform.x + entA.transform.w * 0.5f) - (entB.transform.x + entB.transform.w * 0.5f);
-    float dirY = (entA.transform.y + entA.transform.h * 0.5f) - (entB.transform.y + entB.transform.h * 0.5f);
+    Entity& entA = colA.getOwner();
+    Entity& entB = colB.getOwner();
 
-    if ((cleanNormal.x * dirX + cleanNormal.y * dirY) < 0.0f) {
+    // float dirX = (entA.transform.x + entA.transform.w * 0.5f) - (entB.transform.x + entB.transform.w * 0.5f);
+    // float dirY = (entA.transform.y + entA.transform.h * 0.5f) - (entB.transform.y + entB.transform.h * 0.5f);
+
+    Vect2 relativePos = {
+        (entA.transform.x + entA.transform.w * 0.5f) - (entB.transform.x + entB.transform.w * 0.5f),
+        (entA.transform.y + entA.transform.h * 0.5f) - (entB.transform.y + entB.transform.h * 0.5f)
+    };
+
+    if ((cleanNormal.x * relativePos.x + cleanNormal.y * relativePos.y) < 0.0f) {
         cleanNormal.x = -cleanNormal.x;
         cleanNormal.y = -cleanNormal.y;
     }
 
-    const float penetrationSlop = 0.01f; 
+    // 4. Calculate Correction
     float positionalCorrectionPercent = (manifold.penetration > 5.0f) ? 1.0f : 0.8f;
-
-    float correctionMagnitude = std::max(0.0f, manifold.penetration - penetrationSlop) * positionalCorrectionPercent;
+    float correctionMagnitude = std::max(0.0f, manifold.penetration - 0.05f) * positionalCorrectionPercent;
+    
     if (correctionMagnitude <= 0.0f) return;
 
-    // MASS STRATIFICATION LAYER:
-    // If an entity is locked deep in the cushion zone, it acts as an unmovable anchor (mass = 0.0f)
-    float massA = (colA.isDynamic() && physA && !aLocked) ? 1.0f : 0.0f;
-    float massB = (colB.isDynamic() && physB && !bLocked) ? 1.0f : 0.0f;
-    
-    float totalMass = massA + massB;
-    if (totalMass == 0.0f) return;
+    // 5. Apply Positional Correction
+    float weightA = (massB > 0.0f) ? (massA / totalMass) : 1.0f;
+    float weightB = (massA > 0.0f) ? (massB / totalMass) : 1.0f;
 
-    float shareA = massA / totalMass;
-    float shareB = massB / totalMass;
-
-    if (massA > 0.0f || bLocked) { 
-        float factor = bLocked ? 1.0f : shareA;
-        entA.transform.x += cleanNormal.x * correctionMagnitude * factor;
-        entA.transform.y += cleanNormal.y * correctionMagnitude * factor;
+    // If B is stable, A takes all the correction. If both are dynamic, they split it.
+    if (colA.isDynamic() && !aStable) {
+        entA.transform.x += cleanNormal.x * correctionMagnitude * weightA;
+        entA.transform.y += cleanNormal.y * correctionMagnitude * weightA;
         colA.invalidateTransform();
     }
-    if (massB > 0.0f || aLocked) {
-        float factor = aLocked ? 1.0f : shareB;
-        entB.transform.x -= cleanNormal.x * correctionMagnitude * factor;
-        entB.transform.y -= cleanNormal.y * correctionMagnitude * factor;
+    
+    if (colB.isDynamic() && !bStable) {
+        entB.transform.x -= cleanNormal.x * correctionMagnitude * weightB;
+        entB.transform.y -= cleanNormal.y * correctionMagnitude * weightB;
         colB.invalidateTransform();
     }
 
-    if (physA) {
-        if (cleanNormal.y < -0.7f) physA->isGrounded = true;
-        float velAlongNormalA = physA->velocity.x * cleanNormal.x + physA->velocity.y * cleanNormal.y;
-        if (velAlongNormalA < 0.0f) {
-            physA->velocity.x -= velAlongNormalA * cleanNormal.x;
-            physA->velocity.y -= velAlongNormalA * cleanNormal.y;
-        }
-    }
+    // 6. Resolve Velocities (Friction/Bounce)
+    if (physA || physB) {
+        // A. Handle Grounded State
+        if (physA && cleanNormal.y < -0.7f) physA->isGrounded = true;
+        if (physB && cleanNormal.y > 0.7f) physB->isGrounded = true;
 
-    if (physB) {
-        if (cleanNormal.y > 0.7f) physB->isGrounded = true;
-        float velAlongNormalB = physB->velocity.x * (-cleanNormal.x) + physB->velocity.y * (-cleanNormal.y);
-        if (velAlongNormalB < 0.0f) {
-            physB->velocity.x -= velAlongNormalB * (-cleanNormal.x);
-            physB->velocity.y -= velAlongNormalB * (-cleanNormal.y);
+        // B. Calculate Relative Velocity
+        Vect2 relVel = {
+            (physA ? physA->velocity.x : 0.0f) - (physB ? physB->velocity.x : 0.0f),
+            (physA ? physA->velocity.y : 0.0f) - (physB ? physB->velocity.y : 0.0f)
+        };
+
+        // C. Normal Impulse (Bounce)
+        float velAlongNormal = relVel.x * cleanNormal.x + relVel.y * cleanNormal.y;
+        if (velAlongNormal < 0.0f) {
+            float e = 0.0f; // Inelastic collision
+            float j = -(1.0f + e) * velAlongNormal;
+            j /= totalMass;
+
+            Vect2 impulse = { j * cleanNormal.x, j * cleanNormal.y };
+            if (physA && massA > 0.0f) { physA->velocity.x += impulse.x; physA->velocity.y += impulse.y; }
+            if (physB && massB > 0.0f) { physB->velocity.x -= impulse.x; physB->velocity.y -= impulse.y; }
+        }
+
+        // D. Friction Impulse (Tangential)
+        // Refresh relVel after normal impulse
+        relVel = {
+            (physA ? physA->velocity.x : 0.0f) - (physB ? physB->velocity.x : 0.0f),
+            (physA ? physA->velocity.y : 0.0f) - (physB ? physB->velocity.y : 0.0f)
+        };
+
+        Vect2 tangent = { -cleanNormal.y, cleanNormal.x }; // Tangent is perp to normal
+        float velAlongTangent = relVel.x * tangent.x + relVel.y * tangent.y;
+
+        // Apply friction only if there is tangential motion
+        if (std::abs(velAlongTangent) > 0.001f) {
+            // Friction force: F = -vel * friction_coeff
+            // We scale by dt internally here or keep it constant to mimic surface resistance
+            float jt = -velAlongTangent * std::min(groundFriction * 0.1f, 1.0f);
+            jt /= totalMass;
+
+            Vect2 frictionImpulse = { jt * tangent.x, jt * tangent.y };
+            if (physA && massA > 0.0f) { physA->velocity.x += frictionImpulse.x; physA->velocity.y += frictionImpulse.y; }
+            if (physB && massB > 0.0f) { physB->velocity.x -= frictionImpulse.x; physB->velocity.y -= frictionImpulse.y; }
         }
     }
 }

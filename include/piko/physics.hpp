@@ -67,7 +67,7 @@ namespace piko {
             // Simulation constant variable
             float gravity = 600.0f;
             float linearDamping = 1.0f;
-            float groundFriction = 7.0f;
+            float groundFriction = 1.0f;
             
             // Simulation window and boundary properties
             float simPadding = 512.0f;
