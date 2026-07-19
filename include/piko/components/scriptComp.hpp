@@ -55,7 +55,10 @@ namespace piko {
     class PlayerMoveScript : public Script {
         public:
             float speed = 200.0f;
+            float jumpVelocity = -320.0f;
+            
             bool topDownMode = false;
+            bool groundedJump = true;
 
             // Binds the Entity's PhysicsBody to response to inputs.
             void setPlayerBody(uint32_t pBody);

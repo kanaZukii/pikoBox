@@ -13,6 +13,7 @@
 #include "piko/math.hpp"
 
 namespace piko {
+    struct Entity;
     class Component;
     class Collidable;
     class ButtonScript;
@@ -59,6 +60,26 @@ namespace piko {
 
         ButtonEvent(ButtonScript* btn, STATE state)
             : btn(btn), state(state) {}
+    };
+
+    struct GameplayEvent : public Event {
+        enum class TYPE {
+            READY,
+            BEGIN,
+            END,
+            PAUSE,
+            RESUME,
+            WIN,
+            LOSE,
+            SPECIAL
+        };
+
+        TYPE type;
+        int payload; // Can store score, level index, or error code
+        Entity* entity; // Optional pointer
+
+        GameplayEvent(TYPE type, int p = 0, Entity* e = nullptr) 
+            : type(type), payload(p), entity(e) {}
     };
 
     /*

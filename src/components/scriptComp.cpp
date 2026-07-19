@@ -92,9 +92,10 @@ void PlayerMoveScript::onEarlyUpdate(float dt) {
         }
     } else {
         // Platformer Jump Logic (Using your fixed manifold tracking!)
-        if (input->isActionPressed("player_move_up") && pBody->isGrounded) {
-            pBody->velocity.y = -350.0f; // Jump impulse force
-            pBody->isGrounded = false;
+        if (input->isActionPressed("player_move_up") && (pBody->isGrounded || !groundedJump)) {
+            pBody->velocity.y = jumpVelocity; // Jump impulse force
+            
+            if(groundedJump) pBody->isGrounded = false;
         }
     }
 }
@@ -102,7 +103,9 @@ void PlayerMoveScript::onEarlyUpdate(float dt) {
 std::string PlayerMoveScript::serialize() {
     json data = json::parse(Component::serialize());
     data["speed"] = speed;
+    data["jumpVelocity"] = jumpVelocity;
     data["topDownMode"] = topDownMode;
+    data["groundedJump"] = groundedJump;
     if(pBody){
         data["pBody"] = pBody->getAlias();
     }
@@ -113,7 +116,9 @@ void PlayerMoveScript::deserialize(const std::string& rawJson) {
     Component::deserialize(rawJson);
     json data = json::parse(rawJson);
     speed = data.value("speed", 200.0f);
+    jumpVelocity = data.value("jumpVelocity", -320.0f);
     topDownMode = data.value("topDownMode", false);
+    groundedJump = data.value("groundedJump", true);
      if(data.contains("pBody")){
         std::string pbodyStr = data.value("pBody", "");
         owner->scene->addPostLoadJob([this, pbodyStr]() {

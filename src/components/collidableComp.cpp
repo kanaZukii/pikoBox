@@ -44,6 +44,7 @@ std::string Collidable::serialize(){
     json data = json::parse(Component::serialize());
     data["trigger"] = trigger;
     data["dynamic"] = dynamic;
+    data["kinematic"] = kinematic;
     if(parentBody){
         data["parentBody"] = parentBody->getAlias();
     }
@@ -56,6 +57,7 @@ void Collidable::deserialize(const std::string& rawJson){
     json data = json::parse(rawJson);
     trigger = data.value("trigger", false);
     dynamic = data.value("dynamic", false);
+    kinematic = data.value("kinematic", false);
     parentBody = nullptr;
     if (data.contains("parentBody")) {
         std::string parentBodyName = data.value("parentBody", "");
@@ -88,7 +90,6 @@ std::string PhysicsBody::serialize(){
     data["gravityScale"] = gravityScale;
     data["frictionScale"] = frictionScale;
     data["dragScale"] = dragScale;
-    data["isGrounded"] = isGrounded;
 
     return data.dump();
 }
@@ -106,5 +107,4 @@ void PhysicsBody::deserialize(const std::string& rawJson){
     gravityScale = data.value("gravityScale", 1.0f);
     frictionScale = data.value("frictionScale", 1.0f);
     dragScale = data.value("dragScale", 1.0f);
-    isGrounded   = data.value("isGrounded", false);
 }

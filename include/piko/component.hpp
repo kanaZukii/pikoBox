@@ -286,6 +286,9 @@ namespace piko {
             // If true, it will react to forces applied via PhysicsBody.
             void setDynamic(bool dynamic) { this->dynamic = dynamic; }
 
+            // If true, it will ignore external forces upon collision. Breaks the third law.
+            void setKinematic(bool kinematic) { this->kinematic = kinematic; }
+
             /*
                 If true, overlap will be detected but collisions will not be resolved.
                 When overlapped with another trigger, a Collision Event will be published.
@@ -296,13 +299,21 @@ namespace piko {
             void setCulled(bool culled) { this->culled = culled; }
             bool isTrigger() const { return trigger; }
             bool isDynamic() const { return dynamic; }
+            bool isKinematic() const { return kinematic; }
 
             // Returns true if culled and ignored by the PhysicsEngine this frame.
             bool isCulled() const { return culled;}
 
-            // Attach a PhysicsBody to the Collidable, immediately set dynamic to true.
+            /* 
+                Attach a PhysicsBody to the Collidable, immediately set dynamic to true.
+                Required in order for PhysicsEngine to simulate the collider's motion.
+            */ 
             void setBody(const std::string& bodyname);
-            // Attach a PhysicsBody to the Collidable, immediately set dynamic to true.
+
+            /* 
+                Attach a PhysicsBody to the Collidable, immediately set dynamic to true.
+                Required in order for PhysicsEngine to simulate the collider's motion.
+            */ 
             void setBody(uint32_t id);
 
             void removeBody();
@@ -317,6 +328,7 @@ namespace piko {
             bool trigger = false;
             bool dynamic = false;
             bool culled = false;
+            bool kinematic = false;
 
             uint32_t pbodyID = 0;
             PhysicsBody* parentBody = nullptr;
@@ -336,7 +348,6 @@ namespace piko {
             virtual void onUpdate(float dt) {}
             virtual void onEarlyUpdate(float dt){}
             virtual void onLateUpdate(float dt){}
-            
             
         protected:
             Script() : Component() {className = "Script";}

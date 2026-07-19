@@ -226,8 +226,8 @@ void PhysicsEngine::resolveSolidCollision(const CollisionManifold& manifold) {
     bool bStable = physB && (physB->velocity.lengthSquared() < SLEEP_THRESHOLD);
 
     // 2. Dynamic mass calculation: Stable objects act as infinite mass (0.0f dynamic mass)
-    float massA = colA.isDynamic() ? 1.0f : 0.0f;
-    float massB = colB.isDynamic() ? 1.0f : 0.0f;
+    float massA = (colA.isDynamic() && !colA.isKinematic()) ? 1.0f : 0.0f;
+    float massB = (colB.isDynamic() && !colB.isKinematic()) ? 1.0f : 0.0f;
         
     float totalMass = massA + massB;
     if (totalMass <= 0.0f) return;
