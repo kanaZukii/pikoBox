@@ -454,13 +454,13 @@ inputs.getMousePos();
 Listen for events:
 
 ```cpp
-owner->scene->listenToEvent<ButtonEvent>(
+scene->listenToEvent<ButtonEvent>(
 [](const ButtonEvent& event)
 {
     // ...
 });
 
-owner->scene->listenToEvent<CollisionEvent>(
+scene->listenToEvent<CollisionEvent>(
 [](const CollisionEvent& event)
 {
     // ...
