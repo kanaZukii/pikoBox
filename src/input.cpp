@@ -124,23 +124,16 @@ void InputManager::update() {
     Vector2 rawPos = GetMousePosition();
     Vector2 delta = GetMouseDelta();
 
-    // 1. Fetch your design metrics
+    float offsetX = Global::GetVar().screenDest.x;
+    float offsetY = Global::GetVar().screenDest.y;
+    
     float canvasW = (float)Global::GetVar().canvasWidth;
-    float canvasH = (float)Global::GetVar().canvasHeight;
+    float scaledW = Global::GetVar().screenDest.w;
+    float scale = (canvasW > 0.0f) ? (scaledW / canvasW) : 1.0f;
 
-    // 2. Fetch window metrics
-    float screenW = (float)GetScreenWidth();
-    float screenH = (float)GetScreenHeight();
+    mouse.x = (rawPos.x - offsetX) / scale;
+    mouse.y = (rawPos.y - offsetY) / scale;
 
-    // 3. Compute scaling factor based on keeping aspect ratio intact
-    // This mirrors how Raylib fits its internal RenderTexture on screen
-    float scale = std::min(screenW / canvasW, screenH / canvasH);
-
-    // 4. Map coordinates cleanly by subtracting the black bar margins
-    mouse.x = (rawPos.x - (screenW - (canvasW * scale)) * 0.5f) / scale;
-    mouse.y = (rawPos.y - (screenH - (canvasH * scale)) * 0.5f) / scale;
-
-    // Scale deltas uniformly
     mouse.deltaX = delta.x / scale;
     mouse.deltaY = delta.y / scale;
 }

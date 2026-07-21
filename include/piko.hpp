@@ -105,6 +105,9 @@ namespace piko {
             // Set a new window title.
             void setTitle(const char* title);
 
+            // Caches window size for aspect ratio tracking
+            void updateWindowInfo();
+
             // Shows the FPS at the top left corner every frame.
             void showFPS(bool enabled){ drawFPS = enabled;}
             

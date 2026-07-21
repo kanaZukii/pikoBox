@@ -1,7 +1,10 @@
 #pragma once
 
+#include "piko/math.hpp"
+
 struct RenderTexture;
 typedef RenderTexture RenderTexture2D;
+
 
 class Global {
 public:
@@ -11,14 +14,13 @@ public:
 
         int canvasWidth = 1280;
         int canvasHeight = 720;
+        bool fullscreen = false;
 
-        RenderTexture2D* drawLayer0 = nullptr;
-
-        float fontSize = 20.0f;
-        float volume = 50.0f;
         const char* windowTitle = "PikoBox Game";
 
-        bool fullscreen = false;
+        piko::Rect screenDest = {0.0f, 0.0f, (float)windowWidth, (float)windowHeight};
+
+        RenderTexture2D* drawLayer0 = nullptr;
     };
 
     static Variables& GetVar() {

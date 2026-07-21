@@ -32,16 +32,14 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     if (fullscreen){ SetConfigFlags(FLAG_FULLSCREEN_MODE);}
     if (resizeable){ SetConfigFlags(FLAG_WINDOW_RESIZABLE);}
 
-    setWindowSize(width, height);
-    setTitle(title);
-
-    InitWindow(Global::GetVar().windowWidth, Global::GetVar().windowHeight,
-                Global::GetVar().windowTitle);
+    InitWindow(width, height, title);
     if (!IsWindowReady()){
         PBOX_ERROR("FAILED TO INITIALIZE WINDOW.");
         return;
     }
     PBOX_INFO("WINDOW SUCCESSFULLY INITIALIZED");
+
+    Global::GetVar().windowTitle = title;
 
     SetTargetFPS(targetFPS);
     Global::GetVar().fullscreen = IsWindowFullscreen();
@@ -56,6 +54,8 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     *drawCanvas = LoadRenderTexture(width, height);
 
     Global::GetVar().drawLayer0 = drawCanvas;
+    Global::GetVar().canvasWidth = width; 
+    Global::GetVar().canvasHeight = height;
     
     PBOX_INFO("SETTING CAMERA........");
     activeCam.setOffset({GetScreenWidth() * 0.5f, GetScreenHeight() * 0.5f});
@@ -79,6 +79,8 @@ void Engine::init(const char *title, int width, int height, bool fullscreen, boo
     sceneMAN->setAudioManager(audioMAN.get());
     sceneMAN->setGameCamera(&activeCam);
     physicsMAN->init();
+
+    updateWindowInfo();
 
     PBOX_INFO("PIKOBOX ENGINE SUCCESSFULLY INITIALIZED!");
 }
@@ -130,12 +132,15 @@ void Engine::update(){
 }
 
 void Engine::drawBegin(){
+    if(IsWindowResized() || IsWindowMaximized()){
+        updateWindowInfo();
+    }
+
     BeginDrawing();
     ClearBackground(BLACK);
 }
 
 void Engine::drawScene(){
-
     BeginTextureMode(*drawCanvas);
     ClearBackground(BLACK);
 
@@ -153,7 +158,7 @@ void Engine::drawScene(){
         drawCanvas->texture,
         (Rectangle){0, 0, (float)drawCanvas->texture.width,
                     (float)-drawCanvas->texture.height},
-        (Rectangle){0, 0, (float)GetScreenWidth(), (float)GetScreenHeight()},
+        (Rectangle)Global::GetVar().screenDest,
         (Vector2){0, 0}, 0.0f, WHITE);
     
     if(drawFPS){
@@ -188,6 +193,8 @@ void Engine::setDrawCanvasSize(int width, int height) {
         {drawCanvas->texture.width * 0.5f, drawCanvas->texture.height * 0.5f}
     );
 
+    if(IsWindowReady()){updateWindowInfo();}
+
     PBOX_INFO("SUCCESSFULLY SET THE DRAW BUFFER SIZE.");
 }
 
@@ -200,12 +207,38 @@ void Engine::setTitle(const char *title) {
 }
 
 void Engine::setWindowSize(int width, int height) {
-    Global::GetVar().windowWidth = width;
-    Global::GetVar().windowHeight = height;
     if (IsWindowReady()) {
         SetWindowSize(width, height);
         PBOX_INFO("SUCCESSFULLY SET WINDOW SIZE TO: %d x %d.", width, height);
+        updateWindowInfo();
     }
+}
+
+void Engine::updateWindowInfo(){
+    Global::GetVar().windowWidth = GetScreenWidth();
+    Global::GetVar().windowHeight = GetScreenHeight();
+
+    float screenW = (float) Global::GetVar().windowWidth;
+    float screenH = (float) Global::GetVar().windowHeight;
+
+    float canvasW = screenW;
+    float canvasH = screenH;
+    
+    if(drawCanvas){
+        canvasW = (float)drawCanvas->texture.width;
+        canvasH = (float)drawCanvas->texture.height;
+    }
+   
+    // 2. Calculate scaling factor to fit within the screen
+    float scale = std::min(screenW / canvasW, screenH / canvasH);
+
+    // 3. Calculate destination rectangle (centered)
+    float scaledW = canvasW * scale;
+    float scaledH = canvasH * scale;
+    float offsetX = (screenW - scaledW) / 2.0f;
+    float offsetY = (screenH - scaledH) / 2.0f;
+
+    Global::GetVar().screenDest = { offsetX, offsetY, scaledW, scaledH };
 }
 
 void Engine::setFullScreen(bool fullscreen) {
@@ -214,6 +247,7 @@ void Engine::setFullScreen(bool fullscreen) {
         if (IsWindowFullscreen() != fullscreen) {
             ToggleFullscreen();
         }
+        updateWindowInfo();
     }
 }
 
