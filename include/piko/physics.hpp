@@ -94,5 +94,6 @@ namespace piko {
             void checkCollisions(const std::vector<Collidable*>& collidables, Scene* scene);
             bool testAABB(const Rect& a, const Rect& b, CollisionManifold& outManifold);
             void resolveSolidCollision(const CollisionManifold& manifold);
+            bool shouldSkipCollision(Collidable* colA, Collidable* colB, const Rect& boundsA, const Rect& boundsB);
     };
 }

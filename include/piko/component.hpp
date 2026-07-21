@@ -279,6 +279,18 @@ namespace piko {
     */
     class Collidable : public Component {
         public:
+            /*
+                Directional side bit flags to let the PhysicsEngine know which 
+                sides to check for resolving a collision.
+            */
+            enum SIDE : uint8_t {
+                NONE   = 0,
+                TOP    = 1 << 0,
+                BOTTOM = 1 << 1,
+                LEFT   = 1 << 2,
+                RIGHT  = 1 << 3,
+                ALL    = TOP | BOTTOM | LEFT | RIGHT
+            };
         
             std::string serialize() override; 
             void deserialize(const std::string& rawJson) override;
@@ -303,6 +315,15 @@ namespace piko {
 
             // Returns true if culled and ignored by the PhysicsEngine this frame.
             bool isCulled() const { return culled;}
+
+            // Returns all the allowed sides for collision, uses bitwise logic.
+            uint8_t getAllowedSides() const {return allowedSides;} 
+
+            // Appends allowed collision sides using bitwise flags.
+            void allowSide(uint8_t side){allowedSides |= side;}
+
+            // Removes allowed collision sides using bitwise masking.
+            void ignoreSide(uint8_t side){allowedSides &= ~side;}
 
             /* 
                 Attach a PhysicsBody to the Collidable, immediately set dynamic to true.
@@ -329,6 +350,8 @@ namespace piko {
             bool dynamic = false;
             bool culled = false;
             bool kinematic = false;
+
+            uint8_t allowedSides = SIDE::ALL;
 
             uint32_t pbodyID = 0;
             PhysicsBody* parentBody = nullptr;

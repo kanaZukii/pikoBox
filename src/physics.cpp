@@ -112,22 +112,77 @@ void PhysicsEngine::update(float dt, Scene* scene, const Rect& viewBubble) {
 
     // 4. COLLISION PASS: This runs full spatial resolution and resolves overlapping entities
     checkCollisions(collidables, scene);
+}
 
-    // // 5. PASS C: POST-COLLISION FREEZING LAYER
-    // for (PhysicsBody* pbody : processedBodies) {
-    //     if (!pbody || pbody->isCulled()) continue;
+bool PhysicsEngine::shouldSkipCollision(Collidable* colA, Collidable* colB, const Rect& boundsA, const Rect& boundsB) {
+    PhysicsBody* physA = colA->getPhysicsBody();
+    uint8_t sidesA = colA->getAllowedSides();
+    uint8_t sidesB = colB->getAllowedSides();
+    
+    if (!physA) return false;
 
-    //     Entity& e = pbody->getOwner();
+    // 1. Calculate overlap/penetration on both axes to find the dominant direction
+    float overlapX = std::min(boundsA.x + boundsA.w, boundsB.x + boundsB.w) - std::max(boundsA.x, boundsB.x);
+    float overlapY = std::min(boundsA.y + boundsA.h, boundsB.y + boundsB.h) - std::max(boundsA.y, boundsB.y);
+
+    if (overlapX <= 0.0f || overlapY <= 0.0f) return false; // No actual overlap to bias
+
+    float sideThickness = 8.0f;
+
+    // 2. If X overlap is smaller, it's a horizontal collision. Evaluate X first.
+    if (overlapX < overlapY) {
+        bool movingRight = physA->velocity.x > 0.0f;
         
-    //     bool isInCushionZone = 
-    //         (e.transform.x < activeBounds.x + cushionSize || e.transform.x + e.transform.w > activeBounds.x + activeBounds.w - cushionSize ||
-    //          e.transform.y < activeBounds.y + cushionSize || e.transform.y + e.transform.h > activeBounds.y + activeBounds.h - cushionSize);
+        // RIGHT face ignored on B: allows entry from the right side / moving left through it
+        if (!(sidesB & Collidable::SIDE::RIGHT)) {
+            float aRight = boundsA.x + boundsA.w;
+            float bLeft = boundsB.x + sideThickness;
+            if (physA->velocity.x < 0.0f || aRight >= bLeft) {
+                return true; 
+            }
+        }
 
-    //     if (isInCushionZone) {
-    //         pbody->velocity.x = 0.0f;
-    //         pbody->velocity.y = 0.0f;
-    //     }
-    // }
+        // LEFT face ignored on B: allows entry from the left side / moving right through it
+        if (!(sidesB & Collidable::SIDE::LEFT)) {
+            float aLeft = boundsA.x;
+            float bRight = boundsB.x + boundsB.w - sideThickness;
+            if (physA->velocity.x > 0.0f || aLeft <= bRight) {
+                return true; 
+            }
+        }
+
+        // Check A's ignored sides horizontally (symmetrical guard)
+        if (movingRight && !(sidesA & Collidable::SIDE::LEFT)) return true;
+        if (!movingRight && !(sidesA & Collidable::SIDE::RIGHT)) return true;
+    }
+    // 3. Otherwise, it's a vertical collision. Evaluate Y first.
+    else {
+        bool movingDown = physA->velocity.y > 0.0f;
+
+        // BOTTOM face ignored on B: classic one-way platform (allows passing upward through it)
+        if (!(sidesB & Collidable::SIDE::BOTTOM)) {
+            float aBottom = boundsA.y + boundsA.h;
+            float bTop = boundsB.y + sideThickness;
+            if (physA->velocity.y < 0.0f || aBottom >= bTop) {
+                return true; 
+            }
+        }
+
+        // TOP face ignored on B: ceiling pass-through (allows passing downward through it)
+        if (!(sidesB & Collidable::SIDE::TOP)) {
+            float aTop = boundsA.y;
+            float bBottom = boundsB.y + boundsB.h - sideThickness;
+            if (physA->velocity.y > 0.0f || aTop <= bBottom) {
+                return true; 
+            }
+        }
+
+        // Check A's ignored sides vertically (symmetrical guard)
+        if (movingDown && !(sidesA & Collidable::SIDE::BOTTOM)) return true;
+        if (!movingDown && !(sidesA & Collidable::SIDE::TOP)) return true;
+    }
+
+    return false;
 }
 
 void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables, Scene* scene) {
@@ -167,17 +222,22 @@ void PhysicsEngine::checkCollisions(const std::vector<Collidable*>& collidables,
                     Rect liveBoundsA = colA->getGlobalTransform();
                     Rect liveBoundsB = colB->getGlobalTransform();
 
+                    bool doNotResolve = !(colA->getAllowedSides() == Collidable::SIDE::ALL &&  colB->getAllowedSides() == Collidable::SIDE::ALL);
+                    if(doNotResolve){
+                        doNotResolve = shouldSkipCollision(colA, colB, liveBoundsA, liveBoundsB);
+                    }
+
                     CollisionManifold manifold;
                     if (testAABB(liveBoundsA, liveBoundsB, manifold)) {
                         manifold.colA = colA;
                         manifold.colB = colB;
-                        
+
                         if (colA->isTrigger() || colB->isTrigger()) {
                             scene->publishEvent<CollisionEvent>(
                                 CollisionEvent(colA, colB, manifold.normal, manifold.penetration)
                             ); 
                         } 
-                        else {
+                        else if(!doNotResolve) {
                             resolveSolidCollision(manifold);
                         }
                     }

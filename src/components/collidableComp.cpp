@@ -45,6 +45,7 @@ std::string Collidable::serialize(){
     data["trigger"] = trigger;
     data["dynamic"] = dynamic;
     data["kinematic"] = kinematic;
+    data["allowedSides"] = allowedSides;
     if(parentBody){
         data["parentBody"] = parentBody->getAlias();
     }
@@ -58,6 +59,7 @@ void Collidable::deserialize(const std::string& rawJson){
     trigger = data.value("trigger", false);
     dynamic = data.value("dynamic", false);
     kinematic = data.value("kinematic", false);
+    allowedSides = data.value("allowedSides", static_cast<uint8_t>(SIDE::ALL));
     parentBody = nullptr;
     if (data.contains("parentBody")) {
         std::string parentBodyName = data.value("parentBody", "");
