@@ -1,7 +1,5 @@
 # pikoBox v1.0
 
-> **A data-driven 2D game framework built on raylib for rapid game development.**
-
 pikoBox is a component-based 2D game framework for C++ designed to make building games fast, modular, and approachable. It combines an ECS-inspired workflow, JSON serialization, built-in asset management, batched rendering, simple physics, and an event-driven architecture behind a single engine interface.
 
 The goal of pikoBox is to let you focus on making games instead of writing boilerplate.
@@ -496,6 +494,6 @@ Planned additions include:
 
 pikoBox is designed around one simple idea:
 
-> **Build games quickly without sacrificing flexibility.**
+**Build games quickly without sacrificing flexibility.**
 
 The engine favors composition and data-driven workflows and APIs that remain approachable while still providing direct access to every subsystem for all your game development needs.
