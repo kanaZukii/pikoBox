@@ -36,7 +36,6 @@ file(GLOB_RECURSE ENGINE_SOURCES
 add_library(pikoBox STATIC ${ENGINE_SOURCES})
 
 # EXPORT SYSTEM INCLUDE SEARCH PATHS
-# Removed $<BUILD_INTERFACE> so downstream projects can actually see the headers!
 target_include_directories(pikoBox
     PUBLIC
         "${CMAKE_CURRENT_SOURCE_DIR}/include"
@@ -47,7 +46,6 @@ target_include_directories(pikoBox
 )
 
 # LINK LIBRARIES
-# Raylib automatically forwards its platform dependencies (X11/Wayland/Win32) down the chain!
 target_link_libraries(pikoBox PUBLIC raylib)
 
 # Output library binary to a standard lib build destination folder
