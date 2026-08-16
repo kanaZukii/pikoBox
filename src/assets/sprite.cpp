@@ -103,13 +103,13 @@ SpriteSheet::SpriteSheet(const std::string& name, const TextureIMG* tex, const s
     texAtlas = tex;
     if (!texAtlas) throw std::runtime_error("Texture Atlas is NULLPTR");
     if (texAtlas->getData().id == 0) throw std::runtime_error("Texture Atlas is MALFORMED");
+    if (sources.size() >= UINT16_MAX) { throw std::runtime_error("Exceeded maximum capacity of 65535 sprites per sheet.");}
 
     const int texW = texAtlas->getWidth();
     const int texH = texAtlas->getHeight();
 
     sprites.reserve(sources.size());
 
-    int index = 0;
     for (const Rect& src : sources) {
         if (src.x < 0 || src.y < 0 || 
             (src.x + src.w) > texW || 
@@ -119,7 +119,8 @@ SpriteSheet::SpriteSheet(const std::string& name, const TextureIMG* tex, const s
             continue; 
         }
 
-        sprites.push_back({texAtlas, src, name, index++});
+        uint16_t index = static_cast<uint16_t>(sprites.size());
+        sprites.push_back({texAtlas, src, name, index});
     }
 }
 

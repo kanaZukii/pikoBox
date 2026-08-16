@@ -12,9 +12,9 @@ namespace piko{
     struct Sprite;
     class SpriteSheet;
 
-    struct TileFrames {
-        std::vector<const Sprite*> frames; 
-        float frameDuration = 0.1f; 
+    struct TileFrame {
+        const Sprite* sprite = nullptr; 
+        float duration = 0.1f; 
     };
 
     // System built-in bitwise attributes for tiles, used in physics and rendering.
@@ -32,21 +32,27 @@ namespace piko{
         uint16_t id = 0;
         uint8_t tag = 0;  
         uint8_t attrib = TILEATTRIB::NONE;
-        const Sprite* spr = nullptr;
-        std::vector<TileFrames> frames;
+        const Sprite* sprite = nullptr;
+        std::vector<TileFrame> animation;
     };
 
+    /*
+        A TileSet asset contains a collection of Tiles from a spritesheet.
+        Used by a tilemap layer in TileManager.
+    */
     class TileSet{
         public:
             TileSet(const std::string& name, std::vector<Tile> tiles);
-            TileSet(const std::string& name, const SpriteSheet& spr, int count, int startIdx = 0);
             ~TileSet();
 
             const Tile* getTile(uint16_t id) const;
+            uint16_t getLastTileID() const;
             int getSize() const;
 
-            void modifyTag(Tile& tile);
-            void modifyAttrib(Tile& tile);
+            bool setTag(uint16_t id, uint8_t tag);
+            bool setAttrib(uint16_t id, uint8_t attrib);
+
+            std::string serialize();
         private:
             std::string name = "";
             std::vector<Tile> tiles;

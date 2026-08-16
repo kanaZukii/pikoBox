@@ -385,7 +385,7 @@ std::string AssetManager::serialize() {
     // 1. Core Textures Matrix
     json textureMap = json::object();
     for (const auto& [key, tex] : textures) {
-        textureMap[key] = tex.get()->getFilePath(); // Assuming getFilePath() or path property exists
+        textureMap[key] = tex.get()->getFilePath();
     }
     data["textures"] = textureMap;
 
