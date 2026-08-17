@@ -60,6 +60,11 @@ namespace piko{
                 Takes Vect2 coordinates and returns a pair gird coordinates {x, y}.
             */
             std::pair<int32_t, int32_t> wCoordsToGrid(const Vect2& wCoords) const;
+            /*
+                Converts discrete grid indices into world-space coordinates.
+                Takes gird coordinates x and y then returns a Vect2 coordinates.
+            */
+            Vect2 TileManager::gridToWCoords(int32_t gx, int32_t gy) const;
 
             // Retrieves a pointer to the tile at the specified grid location.
             const Tile* getTile(int32_t x, int32_t y, uint8_t layer = 0) const;
@@ -78,7 +83,7 @@ namespace piko{
 
             friend class Engine;
         private:
-            uint8_t size = 32;
+            uint8_t tileSize = 32;
             
             std::vector<TileLayer> layers;
             std::vector<const TileSet*> tileSets;

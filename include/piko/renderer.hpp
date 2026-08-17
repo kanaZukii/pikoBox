@@ -171,6 +171,9 @@ namespace piko {
                     bool clip = false, 
                     Rect clipRegion = {0.0f, 0.0f, 0.0f, 0.0f}
                 );
+
+        Cam* getActiveCam() {return activeCam;}
+        const RenderShader* getActiveShader() {return activeShader;}
         
     protected:
         Renderer(){}
@@ -185,9 +188,6 @@ namespace piko {
 
         void setCamera(Cam* camera) { activeCam = camera; }
         void setShader(const RenderShader* shader) { activeShader = shader; }
-
-        Cam* getActiveCam() {return activeCam;}
-        const RenderShader* getActiveShader() {return activeShader;}
 
         friend class Engine;
         
