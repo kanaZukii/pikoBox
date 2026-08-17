@@ -38,37 +38,37 @@ namespace piko{
             // Sets the pixel dimension size for all tiles.
             void setTileSize(uint8_t size);
             // Sets the tileset for the targeted layer (0 to 255).
-            void setLayerTileSet(const TileSet&, uint8_t layer);
+            void setLayerTileSet(const TileSet*, uint8_t layer);
             // Retrieves the layer's assigned tileset.
             const TileSet* getLayerTileSet(uint8_t layer);
 
             // Loads all map layers from raw JSON data.
-            void loadMap(const std::string& rawJSON);
+            bool loadMap(const std::string& rawJSON);
             /*
                 Loads or overwrites a specific map layer from raw JSON data.
                 Target layer index (0 to 255).
             */ 
-            void loadLayer(const std::string& rawJSON, uint8_t layer);
+            bool loadLayer(const std::string& rawJSON, uint8_t layer);
 
             // Serializes and saves the entire multi-layer map to disk.
-            void saveMap(const std::string& filepath);
+            bool saveMap(const std::string& filepath);
             // Serializes and saves a specific map layer to disk.
-            void saveLayer(const std::string& filepath);
+            bool saveLayer(const std::string& filepath);
 
             /*
                 Converts world-space coordinates into discrete grid indices.
                 Takes Vect2 coordinates and returns a pair gird coordinates {x, y}.
             */
-            std::pair<int32_t, int32_t> wCoordsToGrid(Vect2 wCoords) const;
+            std::pair<int32_t, int32_t> wCoordsToGrid(const Vect2& wCoords) const;
 
             // Retrieves a pointer to the tile at the specified grid location.
             const Tile* getTile(int32_t x, int32_t y, uint8_t layer = 0) const;
 
             // Places or updates a tile at the given grid location.
-            void setTile(int32_t x, int32_t y, const Tile& t);
+            bool setTile(const Tile& t, int32_t x, int32_t y, uint8_t layer=0);
 
             // Removes a tile from the specified grid location.
-            void removeTile(int32_t x, int32_t y);
+            bool removeTile(int32_t x, int32_t y, uint8_t layer=0);
 
             // Renders all active visible tile layers using the provided renderer.
             void draw(Renderer& renderer);

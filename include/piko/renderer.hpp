@@ -186,6 +186,9 @@ namespace piko {
         void setCamera(Cam* camera) { activeCam = camera; }
         void setShader(const RenderShader* shader) { activeShader = shader; }
 
+        Cam* getActiveCam() {return activeCam;}
+        const RenderShader* getActiveShader() {return activeShader;}
+
         friend class Engine;
         
     private:
