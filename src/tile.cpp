@@ -2,6 +2,7 @@
 #include "piko/renderer.hpp"
 #include "piko/sprite.hpp"
 #include "piko/cam.hpp"
+#include "piko/logger.hpp"
 
 #include <fstream>
 
@@ -25,7 +26,7 @@ void TileManager::setTileSize(uint8_t size){
     tileSize = size;
 }
 
-void TileManager::setLayerTileSet(const TileSet* tileset, uint8_t layer){
+void TileManager::setLayerTileSet(uint8_t layer, const TileSet* tileset){
     tileSets[layer] = tileset;
 }
 
@@ -33,21 +34,151 @@ const TileSet* TileManager::getLayerTileSet(uint8_t layer){
     return tileSets.at(layer);
 }
 
-bool TileManager::loadMap(const std::string& filepath){
-    std::ifstream inFile(filepath);
+std::string TileManager::serializeLayer(uint8_t layer){
+    const TileLayer& l = layers.at(layer);
+    const TileSet* ts = tileSets.at(layer);
+
+    if(l.empty() || !ts){return "{}";}
+
+    json layerData = json::array();
+
+    for(const auto& [coord, tileId] : l){
+        const auto& [x, y] = coord; 
+        
+        layerData.push_back(json::object({
+            {"x", x},
+            {"y", y},
+            {"id", tileId}
+        }));
+    }
+
+    json data = {
+        {"data", std::move(layerData)},
+        {"tileset", ts->getName()}
+    };
+
+    return data.dump();
 }
 
-bool TileManager::loadLayer(const std::string& filepath, uint8_t layer){
+bool TileManager::loadLayer(uint8_t layer, const std::string& rawJSON){
+    try{
+        json jData = json::parse(rawJSON);
+        TileLayer& l = layers.at(layer);
+
+        if(jData.contains("data") &&  jData["data"].is_array()){
+            l.clear();
+
+            for (const auto& tJson : jData["data"]) {
+                int32_t x = tJson.value("x", static_cast<int32_t>(0));
+                int32_t y = tJson.value("y", static_cast<int32_t>(0));
+                uint16_t id = tJson.value("id", static_cast<uint16_t>(0));
+                
+                if(id > 0){ l[{x,y}] = id; }
+            }
+
+            PBOX_INFO("TILE_MAN: Successfully loaded map layer data to layer %d.", layer);
+            return true;
+        }
+        PBOX_ERROR("TILE_MAN: Cannot load map layer to layer %d. Missing 'data' field from JSON file.", layer);
+        return false;
+    } catch (const std::exception& e) {
+        PBOX_ERROR("TILE_MAN: Map layer loading failed. ERROR: '%s'", e.what());
+        return false;
+    }
+}
+
+bool TileManager::loadLayer(uint8_t layer, TileLayer data){
+    layers[layer] = std::move(data);
+    return true;
+}
+
+bool TileManager::saveMapToFile(const std::string& filepath){
+     try {
+        
+        std::ofstream outfile(filepath);
+        
+        if (!outfile.is_open()) {
+            PBOX_ERROR("TILE_MAN: Serialization failed. Could not open or create file at '%s'", filepath.c_str());
+            return false;
+        }
+
+
+        json mapLayers = json::object();
+
+        for(int i = 0; i < layers.size(); ++i){
+            const TileLayer& l = layers.at(i);
+            const TileSet* ts = tileSets.at(i);
+
+            if(l.empty() || !ts){continue;}
+
+            mapLayers[std::to_string(i)] = json::parse(serializeLayer(static_cast<uint8_t>(i)));
+        }
+
+        json mapData = {
+            {"layers", mapLayers},
+            {"tileSize", tileSize}
+        };
+
+        outfile << mapData.dump(4);
+
+        outfile.close();
+        PBOX_INFO("TILE_MAN: Successfully saved map data to '%s'", filepath.c_str());
+        return true;
+
+    } catch (const std::exception& e) {
+        PBOX_ERROR("TILE_MAN: Serialization failed. ERROR: '%s'", e.what());
+        return false;
+    }
+}
+
+bool TileManager::loadMapFromFile(const std::string& filepath){
     std::ifstream inFile(filepath);
     
-}
+    // Check if the file exists and is accessible
+    if (!inFile.is_open()) {
+        PBOX_ERROR("TILE_MAN: Deserialization failed. Could not open file at '%s'", filepath.c_str());
+        return false;
+    }
 
-bool TileManager::saveMap(const std::string& filepath){
-    std::ofstream outFile(filepath);
-}
+    try {
+        json mapData;
+        inFile >> mapData;
+        inFile.close();
 
-bool TileManager::saveLayer(const std::string& filepath){
-    std::ofstream outFile(filepath);
+        if (!mapData.contains("layers")) {
+            PBOX_ERROR("TILE_MAN: Deserialization failed. Missing 'layers' field inside tilemap JSON.");
+            return false;
+        } else if (!mapData["layers"].is_object()){
+            PBOX_ERROR("TILE_MAN: Deserialization failed. Layers field is in the wrong format inside tilemap JSON.");
+            return false;
+        }
+
+        for (const auto& [layerZ, layerData] : mapData["layers"].items()) {
+            int tmp_z = std::stoi(layerZ);
+            if (tmp_z < 0 || tmp_z > 255) {
+                PBOX_WARN("TILE_MAN: Deserializing... Skipping layer %d... Invalid layer Z index must be within 0-255", tmp_z);
+                continue;
+            }
+            uint8_t z = static_cast<uint8_t>(tmp_z);
+
+            if(!layerData.contains("tileset")){
+                PBOX_WARN("TILE_MAN: Deserializing layer %d... 'tileset' field is missing. Ignoring for now, please set it manually.", z);
+            } else {
+                
+            }
+
+            loadLayer(z, layerData.dump());
+        }
+
+       return true;
+
+    } catch (const json::parse_error& e) {
+        PBOX_ERROR("TILE_MAN: Deserialization failed. Load Parse Error in file '%s': %s", filepath.c_str(), e.what());
+        return false;
+    } catch (const std::exception& e) {
+        PBOX_ERROR("TILE_MAN: Deserialization failed. Error: %s", e.what());
+        return false;
+    }
 }
 
 std::pair<int32_t, int32_t> TileManager::wCoordsToGrid(const Vect2& wCoords) const {

@@ -47,7 +47,9 @@ namespace piko{
 
             const Tile* getTile(uint16_t id) const;
             uint16_t getLastTileID() const;
+
             int getSize() const;
+            const std::string& getName() const {return name;}
 
             bool setTag(uint16_t id, uint8_t tag);
             bool setAttrib(uint16_t id, uint8_t attrib);

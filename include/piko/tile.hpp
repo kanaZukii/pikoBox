@@ -38,22 +38,9 @@ namespace piko{
             // Sets the pixel dimension size for all tiles.
             void setTileSize(uint8_t size);
             // Sets the tileset for the targeted layer (0 to 255).
-            void setLayerTileSet(const TileSet*, uint8_t layer);
+            void setLayerTileSet(uint8_t layer, const TileSet*);
             // Retrieves the layer's assigned tileset.
             const TileSet* getLayerTileSet(uint8_t layer);
-
-            // Loads all map layers from raw JSON data.
-            bool loadMap(const std::string& rawJSON);
-            /*
-                Loads or overwrites a specific map layer from raw JSON data.
-                Target layer index (0 to 255).
-            */ 
-            bool loadLayer(const std::string& rawJSON, uint8_t layer);
-
-            // Serializes and saves the entire multi-layer map to disk.
-            bool saveMap(const std::string& filepath);
-            // Serializes and saves a specific map layer to disk.
-            bool saveLayer(const std::string& filepath);
 
             /*
                 Converts world-space coordinates into discrete grid indices.
@@ -74,6 +61,25 @@ namespace piko{
 
             // Removes a tile from the specified grid location.
             bool removeTile(int32_t x, int32_t y, uint8_t layer=0);
+
+            /*
+                Loads or overwrites a specific map layer from a TileLayer data.
+                Target layer index (0 to 255).
+            */ 
+            bool loadLayer(uint8_t layer, TileLayer data);
+            /*
+                Loads or overwrites a specific map layer from raw JSON data.
+                Target layer index (0 to 255).
+            */ 
+            bool loadLayer(uint8_t layer, const std::string& rawJSON);
+
+            // Serializes a specific layer to a JSON formatted string.
+            std::string serializeLayer(uint8_t layer);
+
+            // Serializes and saves the entire multi-layer map to disk.
+            bool saveMapToFile(const std::string& filepath);
+            // Loads all multi-layer map data from raw disk.
+            bool loadMapFromFile(const std::string& filepath);
 
             // Renders all active visible tile layers using the provided renderer.
             void draw(Renderer& renderer);
