@@ -16,6 +16,7 @@
 #include "piko/audioClip.hpp"
 #include "piko/font.hpp"
 #include "piko/animation.hpp"
+#include "piko/tileset.hpp"
 #include "piko/logger.hpp"
 
 namespace piko {
@@ -23,7 +24,7 @@ namespace piko {
     static std::string ReadFileToString(const std::string& path);
 
     // Asset categorization for template-based lookup
-    enum class AssetType {Texture, Audio, Font, Shader, SpriteSheet, AnimationClip};
+    enum class AssetType {Texture, Audio, Font, Shader, SpriteSheet, AnimationClip, TileSet};
     
     // Trait system to map C++ classes to the AssetType enum
     template<typename T> struct AssetMapType;
@@ -33,6 +34,7 @@ namespace piko {
     template<> struct AssetMapType<RenderShader> { static constexpr AssetType type = AssetType::Shader; };
     template<> struct AssetMapType<SpriteSheet> { static constexpr AssetType type = AssetType::SpriteSheet; }; 
     template<> struct AssetMapType<AnimationClip> { static constexpr AssetType type = AssetType::AnimationClip; };
+    template<> struct AssetMapType<TileSet> { static constexpr AssetType type = AssetType::TileSet; };
 
     /*
         AssetManager, centralize repository for all type of assets.
@@ -74,7 +76,18 @@ namespace piko {
             );
 
             // For creating new SpriteSheet asset with predefined sources
-            const SpriteSheet* addSpriteSheet(std::string key, const TextureIMG* tex, const std::vector<Rect>& sources);
+            const SpriteSheet* addSpriteSheet(
+                std::string key, 
+                const TextureIMG* tex, 
+                const std::vector<Rect>& sources
+            );
+
+            const TileSet* addTileSet(
+                std::string key, 
+                const SpriteSheet* sprsheet, 
+                int numTiles, 
+                int startIdx=0
+            );
 
             // For creating new AnimationClip asset
             const AnimationClip* addAnimationClip(
@@ -130,6 +143,7 @@ namespace piko {
             
             std::unordered_map<std::string, std::unique_ptr<RenderShader>> shaders;
             std::unordered_map<std::string, std::unique_ptr<SpriteSheet>> spriteSheets;
+            std::unordered_map<std::string, std::unique_ptr<TileSet>> tileSets;
             std::unordered_map<std::string, std::unique_ptr<AnimationClip>> animationClips;
 
             std::vector<AssetHandle> deletionQueue;
@@ -168,8 +182,12 @@ namespace piko {
                     auto anim_exist = animationClips.find(key);
                     if (anim_exist != animationClips.end()) return anim_exist->second.get();
                 }
+                else if constexpr (type == AssetType::TileSet) {
+                    auto tiles_exist = tileSets.find(key);
+                    if (tiles_exist != tiles_exist.end()) return tiles_exist->second.get();
+                }
                 
-                static std::vector<std::string> types = {"Texture", "Audio", "Font", "Shader", "SpriteSheet", "AnimationClip"};
+                static std::vector<std::string> types = {"Texture", "Audio", "Font", "Shader", "SpriteSheet", "AnimationClip", "TileSet"};
                 PBOX_ERROR("ASSET_MAN: Cannot find %s '%s'", types[typeIdx].c_str(), key.c_str());
                 return nullptr;
             }
@@ -214,6 +232,7 @@ namespace piko {
                 if constexpr (type == AssetType::Shader)      return shaders.count(key) > 0;
                 if constexpr (type == AssetType::SpriteSheet) return spriteSheets.count(key) > 0;
                 if constexpr (type == AssetType::AnimationClip) return animationClips.count(key) > 0;
+                if constexpr (type == AssetType::TileSet)      return tileSets.count(key) > 0;
                 
                 return false;
             }

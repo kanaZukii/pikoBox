@@ -1,6 +1,7 @@
 #include "piko/tile.hpp"
 #include "piko/renderer.hpp"
 #include "piko/sprite.hpp"
+#include "piko/assets.hpp"
 #include "piko/cam.hpp"
 #include "piko/logger.hpp"
 
@@ -161,10 +162,11 @@ bool TileManager::loadMapFromFile(const std::string& filepath){
             }
             uint8_t z = static_cast<uint8_t>(tmp_z);
 
-            if(!layerData.contains("tileset")){
+            std::string tilesetName = layerData.value("tileset", "");
+            if(tilesetName.empty()){
                 PBOX_WARN("TILE_MAN: Deserializing layer %d... 'tileset' field is missing. Ignoring for now, please set it manually.", z);
             } else {
-                
+                tileSets[z] = assets->get<TileSet>(tilesetName);
             }
 
             loadLayer(z, layerData.dump());
@@ -272,9 +274,7 @@ void TileManager::draw(Renderer& renderer){
                     0.0f,
                     i
                 );
-
             }
-
         }
     }
 }

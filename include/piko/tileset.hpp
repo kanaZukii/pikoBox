@@ -53,6 +53,7 @@ namespace piko{
 
             bool setTag(uint16_t id, uint8_t tag);
             bool setAttrib(uint16_t id, uint8_t attrib);
+            bool setAnimation(uint16_t id, std::vector<TileFrame> frames);
 
             std::string serialize();
         private:

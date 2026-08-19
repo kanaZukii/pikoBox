@@ -16,6 +16,7 @@ namespace piko{
 
     class Engine;
     class Renderer;
+    class AssetManager;
 
     // Custom hash functor for std::pair to enable coordinate based map keys.
     struct PairHash {
@@ -86,6 +87,9 @@ namespace piko{
         
         protected:
             TileManager();
+            void terminate(){}
+
+            void setAssets(AssetManager* assets) { this->assets = assets; }
 
             friend class Engine;
         private:
@@ -93,6 +97,8 @@ namespace piko{
             
             std::vector<TileLayer> layers;
             std::vector<const TileSet*> tileSets;
+
+            AssetManager* assets = nullptr;
 
     };
 

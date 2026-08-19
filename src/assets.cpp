@@ -248,6 +248,45 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
     }
 }
 
+ const TileSet* AssetManager::addTileSet(
+                std::string key, 
+                const SpriteSheet* sprsheet, 
+                int numTiles, 
+                int startIdx
+            )
+{
+    auto tile_exist = tileSets.find(key);
+    if(tile_exist != tileSets.end()){
+        PBOX_WARN("ASSET_MAN: Cannot create tile set '%s'. It already exist.", key.c_str());
+        return tile_exist->second.get();
+    }
+
+    try {
+
+        if(startIdx + numTiles > sprsheet->getSize()){
+            throw std::runtime_error("Start and count paramenters will exceed the SpriteSheet's collection of sprites.");
+        }
+
+        std::vector<Tile> tiles;
+        uint16_t id = 0;
+        for(int i = startIdx; i < startIdx + numTiles; ++i){
+            tiles.push_back(
+                {id++, 0, 0, sprsheet->getSprite(i), {}}
+            );
+        }
+
+        auto tset = std::make_unique<TileSet>(key, std::move(tiles));
+
+        auto [it, success] = tileSets.emplace(key, std::move(tset));
+
+        return it->second.get();
+        
+    } catch (const std::exception& e) {
+        PBOX_ERROR("ASSET_MAN: Cannot create tile set '%s': %s", key.c_str(), e.what());
+        return nullptr;
+    }
+}
+
  const AnimationClip* AssetManager::addAnimationClip(
                 std::string key, 
                 const std::vector<SpriteKey>& sprKey, 
@@ -261,7 +300,7 @@ const SpriteSheet* AssetManager::addSpriteSheet(std::string key, const TextureIM
         return anim_exist->second.get();
     }
 
-     try {
+    try {
         
         auto anim = std::make_unique<AnimationClip>(key, sprKey, tranKey, colKey);
 

@@ -58,6 +58,13 @@ bool TileSet::setAttrib(uint16_t id, uint8_t attrib){
     return true;
 }
 
+bool TileSet::setAnimation(uint16_t id, std::vector<TileFrame> frames){
+    if(id >= tiles.size()){ return false; }
+    tiles[id].animation = frames;
+    tiles[id].attrib |= TILEATTRIB::ANIMATED;
+    return true;
+}
+
 std::string TileSet::serialize(){
     json tilesJSON = json::array();
     for(const Tile& t : tiles){
